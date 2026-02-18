@@ -1,0 +1,44 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  BUILD_DIR: bin
+  BINARY: claudemod
+  INSTALL_DIR: ~/.local/bin
+
+tasks:
+  run:
+    cmds:
+      - go run cmd/claudemod/main.go
+
+  build:
+    cmds:
+      - go build -o {{.BUILD_DIR}}/{{.BINARY}} cmd/claudemod/main.go
+
+  test:
+    cmds:
+      - go test -cover ./...
+
+  test-race:
+    cmds:
+      - go test -race ./...
+
+  vet:
+    cmds:
+      - go vet ./...
+
+  lint:
+    cmds:
+      - task: vet
+      - which staticcheck > /dev/null 2>&1 && staticcheck ./... || echo "staticcheck not installed, skipping"
+
+  clean:
+    cmds:
+      - rm -f {{.BUILD_DIR}}/{{.BINARY}}
+
+  install:
+    cmds:
+      - task: build
+      - mkdir -p {{.INSTALL_DIR}}
+      - cp {{.BUILD_DIR}}/{{.BINARY}} {{.INSTALL_DIR}}/{{.BINARY}}

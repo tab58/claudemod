@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/tbright/claudemod/internal/ansi"
-	"github.com/tbright/claudemod/internal/config"
-	"github.com/tbright/claudemod/internal/middleware"
-	"github.com/tbright/claudemod/internal/plugin"
+	"github.com/tab58/claudemod/internal/claudecode/ansi"
+	"github.com/tab58/claudemod/internal/claudecode/config"
+	"github.com/tab58/claudemod/internal/claudecode/middleware"
+	"github.com/tab58/claudemod/internal/claudecode/plugin"
 )
 
 func init() {

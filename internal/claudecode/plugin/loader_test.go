@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tbright/claudemod/internal/config"
-	"github.com/tbright/claudemod/internal/middleware"
+	"github.com/tab58/claudemod/internal/claudecode/config"
+	"github.com/tab58/claudemod/internal/claudecode/middleware"
 )
 
 func TestLoadAll_EnabledPlugins(t *testing.T) {

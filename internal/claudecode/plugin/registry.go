@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tbright/claudemod/internal/middleware"
+	"github.com/tab58/claudemod/internal/claudecode/middleware"
 )
 
 // Factory creates a Plugin instance from the given options map.

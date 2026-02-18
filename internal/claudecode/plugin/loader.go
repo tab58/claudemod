@@ -3,8 +3,8 @@ package plugin
 import (
 	"fmt"
 
-	"github.com/tbright/claudemod/internal/config"
-	"github.com/tbright/claudemod/internal/middleware"
+	"github.com/tab58/claudemod/internal/claudecode/config"
+	"github.com/tab58/claudemod/internal/claudecode/middleware"
 )
 
 // LoadAll instantiates all enabled plugins from the config, using the global registry.

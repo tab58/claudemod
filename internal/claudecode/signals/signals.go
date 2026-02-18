@@ -5,9 +5,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/tbright/claudemod/internal/terminal"
+	"github.com/tab58/claudemod/internal/claudecode/terminal"
 )
 
+// Deprecated: ForwardTo is superseded by Bridge.signalHandler which routes
+// signals to the active session. Kept for external reference only.
+//
 // ForwardTo starts goroutines that forward relevant signals to the child process
 // and handle SIGWINCH by resizing the PTY.
 // Returns a cancel function that stops signal forwarding.

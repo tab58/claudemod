@@ -1,72 +1,47 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/tbright/claudemod/internal/bridge"
-	"github.com/tbright/claudemod/internal/config"
-	"github.com/tbright/claudemod/internal/middleware"
-	"github.com/tbright/claudemod/internal/plugin"
-
-	// Register built-in plugins via init().
-	_ "github.com/tbright/claudemod/internal/plugins/filter"
-	_ "github.com/tbright/claudemod/internal/plugins/inject"
-	_ "github.com/tbright/claudemod/internal/plugins/logger"
+	"github.com/tab58/claudemod/internal/launcher"
 )
 
 const defaultClaudePath = "claude"
 
 func main() {
-	configPath := flag.String("config", "", "path to config YAML file")
-	flag.Parse()
-
-	cfg := config.DefaultConfig()
-	if *configPath != "" {
-		var err error
-		cfg, err = config.Load(*configPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
-			os.Exit(1)
-		}
-	}
-
-	claudePath := cfg.ClaudePath
-	if claudePath == "" {
-		var err error
-		claudePath, err = resolveClaudePath()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
-			os.Exit(1)
-		}
-	}
-
-	// Load plugins from config.
-	plugins, err := plugin.LoadAll(cfg)
+	wd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
 		os.Exit(1)
 	}
-	defer middleware.CloseAll(plugins)
-	pipeline := middleware.NewPipeline(plugins)
-
-	// Everything after "--" or remaining flag.Args() goes to claude.
-	claudeArgs := extractClaudeArgs(flag.Args())
-
-	bridgeCfg := bridge.Config{
-		ProcessInput:  pipeline.InputFunc(),
-		ProcessOutput: pipeline.OutputFunc(),
-	}
-
-	exitCode, err := bridge.Run(claudePath, claudeArgs, bridgeCfg)
+	lnch, err := launcher.New(wd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
 		os.Exit(1)
 	}
-	os.Exit(exitCode)
+	defer lnch.Close()
+
+	fmt.Println("spawning self-terminating session: say the word 'exit' to exit.")
+	lnch.SpawnInteractiveSession(launcher.SessionParams{
+		Prompt:       "Hello, world!",
+		ExitCriteria: "Say the word 'exit'.",
+	})
+
+	// claudeCode, err = b.Spawn("claude", []string{}, bridge.Config{})
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
+	// 	os.Exit(1)
+	// }
+	// b.Activate(claudeCode)
+	// exitCode, err := claudeCode.Wait()
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
+	// 	os.Exit(1)
+	// }
+	// os.Exit(exitCode)
 }
 
 // resolveClaudePath finds the claude binary, preferring the well-known location.

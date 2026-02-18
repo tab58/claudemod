@@ -3,7 +3,7 @@ package plugin
 import (
 	"testing"
 
-	"github.com/tbright/claudemod/internal/middleware"
+	"github.com/tab58/claudemod/internal/claudecode/middleware"
 )
 
 type stubPlugin struct{ name string }

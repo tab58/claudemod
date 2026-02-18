@@ -3,8 +3,8 @@ package inject
 import (
 	"sync"
 
-	"github.com/tbright/claudemod/internal/middleware"
-	"github.com/tbright/claudemod/internal/plugin"
+	"github.com/tab58/claudemod/internal/claudecode/middleware"
+	"github.com/tab58/claudemod/internal/claudecode/plugin"
 )
 
 func init() {
