@@ -14,4 +14,8 @@ Update .claude/claudemod/SESSION_STATE.md explaining WHY rollback is needed. Onl
 Valid rollback targets: [{{ range $index, $target := .RollbackTargets }}{{ $target }}{{ if not (eq (add $index 1) (len $.RollbackTargets)) }}, {{ end }}{{ end }}]
 {{- end }}
 
+STARTUP: Determine if the bootstrap phase in WORKFLOW.md has been completed.
+If it has not, complete it now and then move on to the {{ .PhaseName }} phase.
+If it already has, begin the {{ .PhaseName }} phase now.
+
 EXIT CRITERIA: Exit this session when the criteria listed in WORKFLOW.md for this phase are met.

@@ -130,13 +130,7 @@ func (a *App) runPhase(ctx context.Context, phaseName string) error {
 	if err != nil {
 		return err
 	}
-
-	agentPromptText := `
-Read WORKFLOW.md. Determine if the bootstrap phase has been completed.
-If it has not, complete it now and then move on to the %s phase.
-If it already has, begin the %s phase now.
-`
-	agentPrompt := fmt.Sprintf(agentPromptText, phaseName, phaseName)
+	agentPrompt := "Begin."
 
 	// run the session
 	return a.lnch.SpawnInteractiveSession(
