@@ -1,8 +1,10 @@
 # claudemod
 
-A Go PTY wrapper for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that sits between your terminal and the Claude Code process. It intercepts all I/O for logging, redaction, and injection while preserving the full interactive TUI experience.
+A developer-focused workflow builder that uses Claude Code to focus on incremental feature delivery for production-grade projects.
 
 ## How it works
+
+ClaudeMod uses a Go PTY wrapper for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that sits between your terminal and the Claude Code process. It intercepts all I/O for logging, redaction, and injection while preserving the full interactive TUI experience.
 
 ```
 User Terminal <──stdin/stdout──> claudemod (PTY master) <──PTY slave──> Claude Code
@@ -59,8 +61,8 @@ claudemod --config ~/.claudemod/config.yaml -- --model opus
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag              | Description                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------- |
 | `--config <path>` | Path to a YAML config file. Without this, claudemod runs as a pure passthrough with no plugins. |
 
 Everything after `--` is forwarded directly to the Claude Code binary as arguments.
@@ -122,16 +124,22 @@ Writes a JSONL audit log of all data flowing through the pipeline. ANSI escape s
 
 **Options:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `log_dir` | string | `~/.claudemod/logs` | Directory for log files |
-| `log_input` | bool | `true` | Log data from user to Claude |
-| `log_output` | bool | `true` | Log data from Claude to user |
+| Option       | Type   | Default             | Description                  |
+| ------------ | ------ | ------------------- | ---------------------------- |
+| `log_dir`    | string | `~/.claudemod/logs` | Directory for log files      |
+| `log_input`  | bool   | `true`              | Log data from user to Claude |
+| `log_output` | bool   | `true`              | Log data from Claude to user |
 
 **Log format** (one JSON object per line):
 
 ```json
-{"timestamp":"2026-02-17T20:15:03.123Z","session_id":"abc-123","direction":"output","data":"Hello! How can I help?","raw_len":847}
+{
+  "timestamp": "2026-02-17T20:15:03.123Z",
+  "session_id": "abc-123",
+  "direction": "output",
+  "data": "Hello! How can I help?",
+  "raw_len": 847
+}
 ```
 
 - `data` — ANSI-stripped text content
@@ -145,17 +153,17 @@ Redacts sensitive patterns from both input and output using regex. Matched text 
 
 **Options:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `patterns` | list of strings | `[]` | Regex patterns to redact |
+| Option     | Type            | Default | Description              |
+| ---------- | --------------- | ------- | ------------------------ |
+| `patterns` | list of strings | `[]`    | Regex patterns to redact |
 
 **Example patterns:**
 
 ```yaml
 patterns:
-  - "sk-[a-zA-Z0-9]{20,}"     # OpenAI API keys
-  - "AKIA[0-9A-Z]{16}"         # AWS access key IDs
-  - "ghp_[a-zA-Z0-9]{36}"      # GitHub personal access tokens
+  - "sk-[a-zA-Z0-9]{20,}" # OpenAI API keys
+  - "AKIA[0-9A-Z]{16}" # AWS access key IDs
+  - "ghp_[a-zA-Z0-9]{36}" # GitHub personal access tokens
 ```
 
 When combined with the logger, the filter runs first in the pipeline so redacted values never reach the log files.
@@ -166,9 +174,9 @@ Prepends text to the first input chunk sent to Claude Code. Fires exactly once p
 
 **Options:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `text` | string | `""` | Text to prepend to the first input |
+| Option | Type   | Default | Description                        |
+| ------ | ------ | ------- | ---------------------------------- |
+| `text` | string | `""`    | Text to prepend to the first input |
 
 ## Plugin pipeline
 
@@ -269,10 +277,10 @@ If your plugin holds resources (open files, connections), implement `io.Closer` 
 
 ## Dependencies
 
-| Module | Purpose |
-|--------|---------|
-| `github.com/creack/pty` | PTY creation and management |
-| `golang.org/x/term` | Raw terminal mode |
-| `golang.org/x/sys` | ioctl for window size (TIOCGWINSZ/TIOCSWINSZ) |
-| `gopkg.in/yaml.v3` | YAML config parsing |
-| `github.com/google/uuid` | Session IDs for log files |
+| Module                   | Purpose                                       |
+| ------------------------ | --------------------------------------------- |
+| `github.com/creack/pty`  | PTY creation and management                   |
+| `golang.org/x/term`      | Raw terminal mode                             |
+| `golang.org/x/sys`       | ioctl for window size (TIOCGWINSZ/TIOCSWINSZ) |
+| `gopkg.in/yaml.v3`       | YAML config parsing                           |
+| `github.com/google/uuid` | Session IDs for log files                     |
