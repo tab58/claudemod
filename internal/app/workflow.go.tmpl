@@ -1,0 +1,243 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+# Workflow Definition
+
+## Session Protocol
+
+### On Start
+
+1. Read `{{ $baseDir }}/{{ $sessionStateName }}`
+2. Read `{{ $baseDir }}/{{ $taskFileName }}`
+3. Read `{{ $baseDir }}/{{ $changelogName }}`
+4. Read `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and other specs in the `{{ $baseDir }}/{{ $specFolder }}` folder
+5. Drift detection: compare spec against code, flag discrepancies
+
+In reading {{ $sessionStateName }}, determine the action to take based on the action field. 
+If the action is "advance", then the phase listed in the "phase" field should be started.
+If the action is "restart", then the phase listed in the "phase" field has not been completed and that phase should be restarted with the "discussion_summary" field as context and "recommendation" field as the next steps.
+If the action is "rollback", then the phase listed in the "phase" field should be started with the "discussion_summary" field as context, "explanation" field as the reason for the rollback, and "recommendation" field as the next steps.
+If the action is null, then the session is complete and the developer should be prompted to restart the workflow.
+
+### On Phase Exit
+
+Before signaling phase completion, update `{{ $baseDir }}/{{ $sessionStateName }}` with the following JSON structure:
+
+```
+{
+  "action": "advance",
+  "discussion_summary": <3-4 line summary of discussion>,
+  "recommendation": <2-3 line summary of what to focus on>
+}
+```
+
+### On End
+
+If work is incomplete, write `{{ $baseDir }}/{{ $sessionStateName }}` with:
+
+```
+{
+  "action": "restart",
+  "phase": <the name of the current incomplete phase>,
+  "discussion_summary": <3-4 line summary of discussion>,
+  "recommendation": <2-3 line summary of what to focus on>
+}
+```
+
+If work is complete, write `{{ $baseDir }}/{{ $sessionStateName }}` with:
+
+```
+{
+  "action": null
+}
+```
+
+## Rollback
+
+Phases can signal a rollback to revisit an earlier phase when concrete problems are discovered.
+
+### When to Rollback
+
+- Requirements were misunderstood and need re-discussion
+- Spec gaps discovered during implementation
+- Wrong test assumptions that invalidate the test approach
+- Architectural issues that require rethinking the design
+
+### When NOT to Rollback
+
+- Minor fixable issues (fix in the current phase instead)
+- Speculative concerns without concrete evidence
+- Small test adjustments that can be handled inline
+
+### How to Signal Rollback
+
+1. In interactive mode, discuss with the developer and get agreement first
+2. Make sure only to rollback to valid rollback targets (valid targets are listed in each phase prompt)
+3. Update `{{ $baseDir }}/{{ $sessionStateName }}` with the following JSON structure:
+
+```
+{
+  "action": "rollback",
+  "phase": <the name of the phase>,
+  "discussion_summary": <3-4 line summary of discussion>,
+  "explanation": <2-3 line summary of why rollback is needed>,
+  "recommendation": <2-3 line summary of what to focus on>,
+}
+```
+
+
+## Phases
+
+### discuss-feature
+
+Read the project spec.
+Ask the developer clarifying questions about their request.
+After each response, state your confidence level (0-100%) in understanding what the developer wants to build.
+Continue asking questions until you reach at least 85% confidence.
+Only then offer: "Continue refining or proceed with sensible defaults?".
+End with a summary of understood requirements.
+
+## Criteria
+
+- [ ] Requirements summarized
+- [ ] Developer confirms understanding
+
+### spec-feature
+
+Determine which spec files to create or update.
+Read related specs and check for contradictions.
+Draft changes covering data structures, architecture decisions, data models, API contracts behavioral requirements.
+Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template to generate the spec.
+When describing your plan to the developer, start with talking about the abstraction model and the data structures involved.
+Talk about the functions needed and how it connects to the greater whole.
+If a user or event is involved, trace the execution paths from start to finish.
+
+## Criteria
+
+- [ ] Spec changes drafted
+- [ ] No unresolved contradictions
+- [ ] Changes written to {{ $baseDir }}/{{ $specFolder }} files
+- [ ] Developer confirms changes to the spec
+
+### scope-feature
+
+Break the agreed work into concrete, implementable tasks.
+Write tasks to `{{ $baseDir }}/{{ $taskFileName }}` with checkboxes.
+Each task should be small enough to implement and test in one iteration.
+Order the tasks from high priority, medium priority, and low priority.
+
+## Criteria
+
+- [ ] {{ $baseDir }}/{{ $taskFileName }} populated with tasks ordered by priority
+- [ ] Each task is concrete and testable
+- [ ] Developer confirms tasks
+
+### tdd-red
+
+Write test cases for all the tasks in the `{{ $baseDir }}/{{ $taskFileName }}` file.
+For each task:
+
+1. Define the interface/contract using language-appropriate constructs. Examples include:
+
+- Go: interface
+- TypeScript: interface/type
+- Python: Protocol/ABC,
+- Rust: trait
+
+2. Determine the test cases for the interfaces, such as nil-/null- pointer issues, negative indexes, or default values.
+3. Write tests against the interface
+4. Run the tests — they MUST fail due to the interface not being implemented, not due to other errors such as syntax or linting
+
+Once the tests are designed and written, summarize the test cases and ask the developer to confirm them. Be sure to explain why the interface is necessary for the task and, if applicable, the reasoning behind the test cases in detail and why they are important. If the developer rejects the test cases, ask them to explain why and work with them to design new test cases that are acceptable to them. Once the developer confirms the test cases, make sure they fail due to the interface not being implemented, not due to other errors such as syntax or linting.
+
+## Criteria
+
+- [ ] Interface/contract defined
+- [ ] Tests written
+- [ ] Developer confirms tests
+- [ ] Tests run and FAIL (red)
+
+### tdd-green
+
+Write the minimal implementation to make tests pass. Run tests after every implementation. Do not add functionality beyond what tests require. If new data structures or modules are written, be sure to explain why the interface is necessary for the task and, if applicable, the reasoning behind the design decision in concise detail and why it was important. If the developer rejects the implementation, ask them to explain why and work with them to design a new or revised implementation that is acceptable to them. Ask the developer to confirm the implementation.
+
+## Criteria
+
+- [ ] Implementation written
+- [ ] All tests PASS (green)
+- [ ] Developer confirms implementation
+
+### code-review
+
+Review the design of the implementation.
+Check for the following:
+
+- errors
+- input validation
+- no hardcoded secrets
+- immutable patterns
+- function size (<50 lines)
+- file size (<500 lines)
+  Fix any issues found.
+  Ask the developer to confirm the code review.
+  If they are not satisfied, ask them to explain why and work with them to fix the issues that are acceptable to them.
+
+## Criteria
+
+- [ ] Code review checklist passed
+- [ ] Issues fixed
+- [ ] Developer confirms review
+
+### synthesize-specs
+
+Re-read entire `{{ $baseDir }}/{{ $specFolder }}/` directory.
+Compare each spec against the implementation.
+Update specs to reflect code as built.
+Check for gaps (code not in spec) and phantom specs (spec not in code).
+Append dated entry to `{{ $baseDir }}/{{ $changelogName }}` with a summary of the changes to the specs and the implementation.
+Copy completed tasks from `{{ $baseDir }}/{{ $taskFileName }}` to `{{ $baseDir }}/{{ $changelogName }}`.
+Remove completed tasks from `{{ $baseDir }}/{{ $taskFileName }}`.
+
+## Criteria
+
+- [ ] Specs updated to reflect code as built
+- [ ] Gaps and phantom specs identified
+- [ ] {{ $changelogName }} updated
+- [ ] {{ $taskFileName }} cleared
+
+### bootstrap
+
+Explore the codebase and look for the following things:
+
+- code structure
+- architecture
+- languages
+- frameworks
+- design patterns
+- dependencies
+- major domains
+  Ask as many questions as you need to be at least 95% sure that you understand:
+- the purpose of the application
+- the application's intended users
+- any key features of this application
+- how it fits into a larger system, if applicable
+- architecture decisions
+  Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specIndexRef }}` as a template and create an `{{ $specIndexName }}` that summarizes the information gathered in the `{{ $baseDir }}/{{ $specFolder }}` folder.
+  Generate specs for each identified domain into that folder with the `{domain
+}/{subdomain}.MD` filename pattern and use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template to generate these specs and write them to the
+  `{{ $baseDir }}/{{ $specFolder }}` folder and link them in the `{{ $specIndexName }}` file.
+  Also generate the following files:
+- a blank `{{ $baseDir }}/{{ $sessionStateName }}` file
+- a blank `{{ $baseDir }}/{{ $taskFileName }}` file
+
+## Criteria
+
+- [ ] {{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }} populated
+- [ ] At least one domain spec created and linked to {{ $specIndexName }}
+- [ ] Developer reviewed and accepted

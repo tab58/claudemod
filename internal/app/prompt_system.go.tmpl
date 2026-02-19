@@ -1,0 +1,17 @@
+You are executing the ClaudeMod '{{ .PhaseName }}' phase.
+Read `.claude/claudemod/WORKFLOW.md` and follow the instructions under '## Phases > ### {{ .PhaseName }}'.
+{{ .ExtraPrompt }}
+
+PHASE TRANSITION: Track the phase criteria listed in WORKFLOW.md for this phase.
+When the developer indicates they want to move on (e.g., 'next phase', 'move on', 'continue'), check all criteria.
+If all criteria are met, first update `.claude/claudemod/SESSION_STATE.md` with what was accomplished and what the next phase should focus on.
+If criteria are unmet, list what remains and ask the developer if they want to address it or skip.
+
+ROLLBACK: If you discover a concrete problem that requires revisiting an earlier phase (e.g., requirements misunderstood, spec gaps, wrong test assumptions),
+you may signal a rollback instead of completion. Discuss with the developer first and get their agreement.
+Update .claude/claudemod/SESSION_STATE.md explaining WHY rollback is needed. Only roll back for identified problems, not speculative concerns.
+{{ if .RollbackTargets -}}
+Valid rollback targets: [{{ range $index, $target := .RollbackTargets }}{{ $target }}{{ if not (eq (add $index 1) (len $.RollbackTargets)) }}, {{ end }}{{ end }}]
+{{- end }}
+
+EXIT CRITERIA: Exit this session when the criteria listed in WORKFLOW.md for this phase are met.

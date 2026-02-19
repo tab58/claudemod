@@ -2,14 +2,10 @@ package launcher
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"slices"
-	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/segmentio/ksuid"
@@ -18,18 +14,20 @@ import (
 
 type Launcher interface {
 	Close() error
-	SpawnInteractiveSession(ctx context.Context, params SessionParams) error
+	SpawnInteractiveSession(ctx context.Context, options ...SessionOption) error
 }
 
 type launcherImpl struct {
 	watcher       *fsnotify.Watcher
 	bridge        *bridge.Bridge
 	wd            string
-	claudeModDir  string
 	activeSession *bridge.Session
 }
 
 func (a *launcherImpl) Close() error {
+	if a.activeSession != nil {
+		return a.activeSession.Suspend()
+	}
 	if a.bridge != nil {
 		return a.bridge.Close()
 	}
@@ -39,50 +37,74 @@ func (a *launcherImpl) Close() error {
 	return nil
 }
 
-type SessionParams struct {
-	Prompt       string
-	ExitCriteria string
-	WorkingDir   string
+type sessionOptions struct {
+	systemPrompt string
+	agentPrompt  string
+	permissions  []string
 }
 
-func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, params SessionParams) error {
-	prompt := params.Prompt
-	exitCriteria := params.ExitCriteria
+type SessionOption func(*sessionOptions)
 
+func WithSystemPrompt(systemPrompt string) SessionOption {
+	return func(o *sessionOptions) {
+		o.systemPrompt = systemPrompt
+	}
+}
+
+func WithAgentPrompt(agentPrompt string) SessionOption {
+	return func(o *sessionOptions) {
+		o.agentPrompt = agentPrompt
+	}
+}
+
+func WithPermissions(permissions []string) SessionOption {
+	return func(o *sessionOptions) {
+		o.permissions = permissions
+	}
+}
+
+func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, options ...SessionOption) error {
+	// default options
+	opts := sessionOptions{
+		permissions: make([]string, 0),
+	}
+	for _, option := range options {
+		option(&opts)
+	}
+
+	// get the signal file path
 	id := ksuid.New().String()
-	signalRelativePath := ".claude/claudemod/" + fmt.Sprintf("signal_%s", id)
-	signalFilepath := filepath.Join(a.wd, signalRelativePath)
+	signalFilePath := filepath.Join(a.wd, fmt.Sprintf("signal_%s", id))
+
+	agentPrompt := opts.agentPrompt
+	systemPrompt := generateSystemPrompt(opts.systemPrompt, id)
+
+	fmt.Printf("systemPrompt:\n%s\n", systemPrompt)
+	fmt.Printf("agentPrompt:\n%s\n", agentPrompt)
+
+	// build the claude code arguments
+	claudeArgs := make([]string, 0)
+	if systemPrompt != "" {
+		claudeArgs = append(claudeArgs, "--append-system-prompt", systemPrompt)
+	}
+	if a.wd != "" {
+		claudeArgs = append(claudeArgs, "--add-dir", a.wd)
+	}
+	if agentPrompt != "" {
+		claudeArgs = append(claudeArgs, agentPrompt)
+	}
 
 	// spawn the claude code instance
-	wd := params.WorkingDir
-	if wd == "" {
-		wd = a.wd
+	claudeExecPath, err := resolveClaudePath()
+	if err != nil {
+		return fmt.Errorf("resolve claude path: %w", err)
 	}
-	promptText := fmt.Sprintf(`
-	%s
-
-EXIT CRITERIA: Exit the session when the following criteria are met: %s.
-
-To exit the session, write the file %s with the exact content {"exit_criteria_met": true} as your LAST action.
-The session will end automatically.
-	`, prompt, exitCriteria, signalRelativePath)
-	claudeArgs := []string{
-		"--append-system-prompt", promptText,
-		"--add-dir", wd,
-		"--allowedTools", strings.Join(
-			[]string{
-				"Read(.claude/claudemod/**)",
-				"Write(.claude/claudemod/**)",
-				"Edit(.claude/claudemod/**)",
-			},
-			",",
-		),
-	}
-	fmt.Println("prompt:", promptText)
-	claudeCode, err := a.bridge.Spawn("claude", claudeArgs, bridge.Config{})
+	claudeCode, err := a.bridge.Spawn(claudeExecPath, claudeArgs, bridge.Config{})
 	if err != nil {
 		return fmt.Errorf("spawn session: %w", err)
 	}
+
+	// activate the session
 	a.activeSession = claudeCode
 	a.bridge.Activate(claudeCode)
 
@@ -95,7 +117,7 @@ The session will end automatically.
 				if !ok {
 					return
 				}
-				if event.Op&fsnotify.Create == fsnotify.Create && event.Name == signalFilepath {
+				if event.Op&fsnotify.Create == fsnotify.Create && event.Name == signalFilePath {
 					select {
 					case exitSignalDetected <- struct{}{}:
 					default:
@@ -121,7 +143,7 @@ The session will end automatically.
 			return fmt.Errorf("error suspending session: %w", err)
 		}
 		a.activeSession = nil
-		err = os.Remove(signalFilepath)
+		err = os.Remove(signalFilePath)
 		if err != nil {
 			return fmt.Errorf("error removing signal file: %w", err)
 		}
@@ -139,8 +161,11 @@ The session will end automatically.
 }
 
 func New(wd string) (Launcher, error) {
-	// create a new watcher
-	claudeModDir, watcher, err := setupWatcher(wd)
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+	err = watcher.Add(wd)
 	if err != nil {
 		return nil, err
 	}
@@ -152,135 +177,17 @@ func New(wd string) (Launcher, error) {
 	}
 
 	return &launcherImpl{
-		watcher:      watcher,
-		bridge:       bridge,
-		wd:           wd,
-		claudeModDir: claudeModDir,
+		watcher: watcher,
+		bridge:  bridge,
+		wd:      wd,
 	}, nil
 }
 
-func setupWatcher(wd string) (string, *fsnotify.Watcher, error) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return "", nil, err
-	}
+func generateSystemPrompt(mainPrompt string, id string) string {
+	fullPromptTemplate := `%s
 
-	// make a .claude directory in the current working directory
-	claudeDir := filepath.Join(wd, ".claude")
-	if !dirExists(claudeDir) {
-		// create the .claude directory
-		err = os.MkdirAll(claudeDir, 0755)
-		if err != nil {
-			return "", nil, err
-		}
-	}
-
-	// make a .claude/claudemod directory in the current working directory
-	claudeModDir := filepath.Join(claudeDir, "claudemod")
-	if !dirExists(claudeModDir) {
-		// create the .claude/claudemod directory
-		err = os.MkdirAll(claudeModDir, 0755)
-		if err != nil {
-			return "", nil, err
-		}
-	}
-	err = watcher.Add(claudeModDir)
-	if err != nil {
-		return "", nil, err
-	}
-
-	// setup the .claude directory (disabled for now)
-	// err = setupClaudeFolder(claudeDir)
-	// if err != nil {
-	// 	return "", nil, err
-	// }
-
-	return claudeModDir, watcher, nil
-}
-
-type ClaudeSettingsJSON struct {
-	Permissions struct {
-		Allow []string `json:"allow"`
-	} `json:"permissions"`
-}
-
-func setupClaudeFolder(claudeDir string) error {
-	fmt.Println("setting up .claude directory...")
-
-	// create the .claude/settings.local.json file if it doesn't exist
-	if !fileExists(filepath.Join(claudeDir, "settings.local.json")) {
-		err := os.WriteFile(filepath.Join(claudeDir, "settings.local.json"), []byte("{}"), 0644)
-		if err != nil {
-			return err
-		}
-	}
-	// read the .claude/settings.local.json file
-	settingsFilePath := filepath.Join(claudeDir, "settings.local.json")
-	data, err := os.ReadFile(settingsFilePath)
-	if err != nil {
-		return err
-	}
-	// append the permissions to the settings data
-	permissions := []string{
-		"Read(.claude/claudemod/*)",
-		"Write(.claude/claudemod/*)",
-		"Edit(.claude/claudemod/*)",
-	}
-	data, err = appendPermissions(data, permissions)
-	if err != nil {
-		return err
-	}
-	// write the settings data to the .claude/settings.local.json file
-	err = os.WriteFile(settingsFilePath, data, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func fileExists(filename string) bool {
-	_, err := os.Stat(filename)
-	if err == nil {
-		return true // File or directory exists
-	}
-	// Check if the error is specifically due to the file not existing
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	// For other errors (e.g., permission issues), it's unknown or a different problem
-	return false
-}
-
-func dirExists(path string) bool {
-	// check if path exists and is a directory
-	info, err := os.Stat(path)
-	if err == nil {
-		return info.IsDir()
-	}
-
-	// if the directory does not exist, return false
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-
-	fmt.Printf("error checking if directory exists: %v\n", err)
-	return false
-}
-
-func appendPermissions(settingsData []byte, permissions []string) ([]byte, error) {
-	// parse the .claude/settings.local.json file
-	var settingsJSON ClaudeSettingsJSON
-	err := json.Unmarshal(settingsData, &settingsJSON)
-	if err != nil {
-		return nil, err
-	}
-	// add the permission allow array to the .claude/settings.local.json file
-	for _, permission := range permissions {
-		if !slices.Contains(settingsJSON.Permissions.Allow, permission) {
-			settingsJSON.Permissions.Allow = append(settingsJSON.Permissions.Allow, permission)
-		}
-	}
-	// marshal the settingsJSON to a JSON string
-	return json.MarshalIndent(settingsJSON, "", "  ")
+To exit this session, write the file "signal_%s" with the exact content {"exit_criteria_met": true} as your LAST action.
+The session will end automatically.
+	`
+	return fmt.Sprintf(fullPromptTemplate, mainPrompt, id)
 }
