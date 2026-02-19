@@ -173,6 +173,12 @@ func (s *Session) Done() <-chan struct{} {
 	return s.done
 }
 
+// WriteToPTY writes data directly to the PTY master. This delivers bytes
+// to the child process's stdin as if the user typed them.
+func (s *Session) WriteToPTY(data []byte) (int, error) {
+	return s.pty.Write(data)
+}
+
 // close deactivates the session, then shuts down the output gate and PTY.
 func (s *Session) close() {
 	s.closeOnce.Do(func() {

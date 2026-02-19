@@ -79,10 +79,10 @@ func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, options ...S
 	agentPrompt := opts.agentPrompt
 	systemPrompt := generateSystemPrompt(opts.systemPrompt, id)
 
-	fmt.Printf("systemPrompt:\n%s\n", systemPrompt)
-	fmt.Printf("agentPrompt:\n%s\n", agentPrompt)
-
 	// build the claude code arguments
+	// NOTE: --add-dir is variadic (<directories...>) so it will consume
+	// all subsequent non-flag arguments. Use "--" to terminate flag
+	// parsing before the positional prompt argument.
 	claudeArgs := make([]string, 0)
 	if systemPrompt != "" {
 		claudeArgs = append(claudeArgs, "--append-system-prompt", systemPrompt)
@@ -91,7 +91,7 @@ func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, options ...S
 		claudeArgs = append(claudeArgs, "--add-dir", a.wd)
 	}
 	if agentPrompt != "" {
-		claudeArgs = append(claudeArgs, agentPrompt)
+		claudeArgs = append(claudeArgs, "--", agentPrompt)
 	}
 
 	// spawn the claude code instance
