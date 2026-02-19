@@ -34,15 +34,3 @@ func dirExists(path string) bool {
 	fmt.Printf("error checking if directory exists: %v\n", err)
 	return false
 }
-
-func copyFile(src, dst string) error {
-	srcData, err := os.ReadFile(src)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(dst, srcData, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
-}

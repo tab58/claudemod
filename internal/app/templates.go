@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
 
 	"github.com/tab58/claudemod/internal/utils"
 )
@@ -38,10 +37,6 @@ func generateWorkflowFile(values WorkflowValues) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
-}
-
-func generateAgentPrompt(phaseName string) string {
-	return fmt.Sprintf("Read WORKFLOW.md and begin the %s phase now.", phaseName)
 }
 
 //go:embed prompt_system.go.tmpl

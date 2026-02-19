@@ -23,7 +23,7 @@ In reading {{ $sessionStateName }}, determine the action to take based on the ac
 If the action is "advance", then the phase listed in the "phase" field should be started.
 If the action is "restart", then the phase listed in the "phase" field has not been completed and that phase should be restarted with the "discussion_summary" field as context and "recommendation" field as the next steps.
 If the action is "rollback", then the phase listed in the "phase" field should be started with the "discussion_summary" field as context, "explanation" field as the reason for the rollback, and "recommendation" field as the next steps.
-If the action is null, then the session is complete and the developer should be prompted to restart the workflow.
+If the action is "complete", then the session is complete and the developer should be prompted to restart the workflow.
 
 ### On Phase Exit
 
@@ -54,7 +54,7 @@ If work is complete, write `{{ $baseDir }}/{{ $sessionStateName }}` with:
 
 ```
 {
-  "action": null
+  "action": "complete"
 }
 ```
 

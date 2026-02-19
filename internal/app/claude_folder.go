@@ -168,7 +168,7 @@ func populateClaudeModFolder(wd string) error {
 			IndexExampleRefName: "SPEC_INDEX.md",
 			ExampleRefName:      "SPEC.md",
 		},
-		SessionStateFileName: "SESSION_STATE.md",
+		SessionStateFileName: "SESSION_STATE.json",
 		TaskFileName:         "FIX_PLAN.md",
 		ChangelogFileName:    "CHANGELOG.md",
 	}
