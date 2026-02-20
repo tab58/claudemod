@@ -2,6 +2,7 @@ package launcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -18,23 +19,24 @@ type Launcher interface {
 }
 
 type launcherImpl struct {
-	watcher       *fsnotify.Watcher
-	bridge        *bridge.Bridge
-	wd            string
-	activeSession *bridge.Session
+	watcher *fsnotify.Watcher
+	bridge  *bridge.Bridge
+	wd      string
 }
 
 func (a *launcherImpl) Close() error {
-	if a.activeSession != nil {
-		return a.activeSession.Suspend()
-	}
+	var errs []error
 	if a.bridge != nil {
-		return a.bridge.Close()
+		if err := a.bridge.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 	if a.watcher != nil {
-		return a.watcher.Close()
+		if err := a.watcher.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 type sessionOptions struct {
@@ -105,7 +107,6 @@ func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, options ...S
 	}
 
 	// activate the session
-	a.activeSession = claudeCode
 	a.bridge.Activate(claudeCode)
 
 	// watch for signal file creation
@@ -138,13 +139,11 @@ func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, options ...S
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-exitSignalDetected:
-		err := claudeCode.Suspend()
-		if err != nil {
-			return fmt.Errorf("error suspending session: %w", err)
+		if err := claudeCode.Suspend(); err != nil {
+			return fmt.Errorf("suspend session: %w", err)
 		}
-		a.activeSession = nil
-		err = os.Remove(signalFilePath)
-		if err != nil {
+		claudeCode.Close()
+		if err := os.Remove(signalFilePath); err != nil {
 			return fmt.Errorf("error removing signal file: %w", err)
 		}
 		return nil

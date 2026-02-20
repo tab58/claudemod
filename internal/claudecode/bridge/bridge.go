@@ -122,7 +122,7 @@ func (b *Bridge) Close() error {
 	close(b.signalDone)
 
 	for _, s := range b.sessions {
-		s.close()
+		s.Close()
 	}
 
 	b.signalWg.Wait()

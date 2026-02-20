@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
+	"time"
 
 	"github.com/creack/pty"
 
@@ -179,11 +180,34 @@ func (s *Session) WriteToPTY(data []byte) (int, error) {
 	return s.pty.Write(data)
 }
 
-// close deactivates the session, then shuts down the output gate and PTY.
-func (s *Session) close() {
+// Close deactivates the session, terminates the child process, then shuts
+// down the output gate and PTY. It is safe to call multiple times.
+func (s *Session) Close() {
 	s.closeOnce.Do(func() {
 		s.setActive(false)
 		close(s.outputGate)
-		s.pty.Close()
+
+		if s.cmd.Process != nil {
+			// Errors ignored: the process may have already exited, which
+			// is fine — s.done handles either outcome below.
+			_ = s.cmd.Process.Signal(syscall.SIGCONT)
+			_ = s.cmd.Process.Signal(syscall.SIGTERM)
+
+			// Close the PTY so pty.Read() in the output pump unblocks.
+			// This allows cmd.Wait() to drain I/O and return.
+			s.pty.Close()
+
+			timer := time.NewTimer(3 * time.Second)
+			defer timer.Stop()
+
+			select {
+			case <-s.done:
+			case <-timer.C:
+				_ = s.cmd.Process.Kill()
+				<-s.done
+			}
+		} else {
+			s.pty.Close()
+		}
 	})
 }
