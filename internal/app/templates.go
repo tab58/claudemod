@@ -18,6 +18,7 @@ type WorkflowValues struct {
 	SessionStateFileName string
 	TaskFileName         string
 	ChangelogFileName    string
+	PlanFileName         string
 }
 
 type WorkflowSpecValues struct {
@@ -29,6 +30,7 @@ type WorkflowRefsValues struct {
 	FolderRelPath       string
 	IndexExampleRefName string
 	ExampleRefName      string
+	BugExampleRefName   string
 }
 
 func generateWorkflowFile(values WorkflowValues) (string, error) {

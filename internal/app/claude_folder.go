@@ -14,6 +14,9 @@ var refSpecMDString string
 //go:embed refs/SPEC_INDEX.md
 var refSpecIndexMDString string
 
+//go:embed refs/BUG_SPEC.md
+var refBugSpecMDString string
+
 func SetupPluginFolder(wd string) error {
 	// ensure the right folders exist
 	err := ensureClaudeFolderExists(wd)
@@ -155,6 +158,10 @@ func populateClaudeModFolder(wd string) error {
 	if err != nil {
 		return err
 	}
+	err = os.WriteFile(filepath.Join(refsFilePath, "BUG_SPEC.md"), []byte(refBugSpecMDString), 0644)
+	if err != nil {
+		return err
+	}
 
 	// write the workflow file to the .claudemod/WORKFLOW.md file
 	values := WorkflowValues{
@@ -167,10 +174,12 @@ func populateClaudeModFolder(wd string) error {
 			FolderRelPath:       "refs",
 			IndexExampleRefName: "SPEC_INDEX.md",
 			ExampleRefName:      "SPEC.md",
+			BugExampleRefName:   "BUG_SPEC.md",
 		},
 		SessionStateFileName: "SESSION_STATE.json",
 		TaskFileName:         "FIX_PLAN.md",
 		ChangelogFileName:    "CHANGELOG.md",
+		PlanFileName:         "PLAN.md",
 	}
 	workflowFile, err := generateWorkflowFile(values)
 	if err != nil {

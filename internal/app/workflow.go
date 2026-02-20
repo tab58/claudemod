@@ -45,39 +45,3 @@ type WorkflowPhase struct {
 	Name            string
 	RollbackTargets []string
 }
-
-var definedWorkflows = map[string]Workflow{
-	"bootstrap": {
-		Phases: []WorkflowPhase{
-			{
-				Name: "bootstrap",
-			},
-		},
-	},
-	"feature": {
-		Phases: []WorkflowPhase{
-			{
-				Name:            "discuss-feature",
-				RollbackTargets: []string{"bootstrap"},
-			},
-			{Name: "spec-feature"},
-			{
-				Name:            "scope-feature",
-				RollbackTargets: []string{"discuss-feature", "spec-feature"},
-			},
-			{
-				Name:            "tdd-red",
-				RollbackTargets: []string{"discuss-feature", "spec-feature", "scope-feature"},
-			},
-			{
-				Name:            "tdd-green",
-				RollbackTargets: []string{"discuss-feature", "spec-feature", "scope-feature", "tdd-red"},
-			},
-			{
-				Name:            "code-review",
-				RollbackTargets: []string{"discuss-feature", "spec-feature", "scope-feature", "tdd-red", "tdd-green"},
-			},
-			{Name: "synthesize-specs"},
-		},
-	},
-}

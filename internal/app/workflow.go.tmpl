@@ -4,7 +4,9 @@
 {{ $refsFolder := .Refs.FolderRelPath -}}
 {{ $specIndexRef := .Refs.IndexExampleRefName -}}
 {{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
 {{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
 {{ $taskFileName := .TaskFileName -}}
 {{ $changelogName := .ChangelogFileName -}}
 # Workflow Definition
@@ -15,7 +17,8 @@
 
 1. Read `{{ $baseDir }}/{{ $sessionStateName }}`
 2. Read `{{ $baseDir }}/{{ $taskFileName }}`
-3. Read `{{ $baseDir }}/{{ $changelogName }}`
+3. Read `{{ $baseDir }}/{{ $planFileName }}`
+4. Read `{{ $baseDir }}/{{ $changelogName }}`
 4. Read `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and other specs in the `{{ $baseDir }}/{{ $specFolder }}` folder
 5. Drift detection: compare spec against code, flag discrepancies
 
@@ -104,20 +107,21 @@ Follow these steps:
 1. Read the project spec.
 2. Ask the developer clarifying questions about their request. After each response, state your confidence level (0-100%) in understanding what the developer wants to build. Continue asking questions until you reach at least 85% confidence.
 3. After reaching >85% confidence, ask the developer to continue refining or proceed with sensible defaults.
-4. After confirmation, end with a summary of understood requirements.
+4. After confirmation, summarize the understood requirements and write them to `{{ $baseDir }}/{{ $planFileName }}`.
 
-## Criteria
+#### Criteria
 
-- [ ] Requirements summarized
+- [ ] Summary of requirements written to {{ $baseDir }}/{{ $planFileName }}
 - [ ] Developer confirms understanding
 
-### spec-feature
+### spec-plan
 
 Follow these steps:
 
-1. Determine which spec files to create or update. Read related specs and check for contradictions. 
-2. Draft changes covering data structures, architecture decisions, data models, API contracts behavioral requirements. Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template to generate the spec.
-3. Describe the plan to the developer. Start with talking about the abstraction model and the data structures involved and, if applicable, separate the discussion into the different parts of the system (for example, the frontend, backend, database, different microservices, etc.). Here are some guidelines for describing the plan:
+1. Read the requirements from `{{ $baseDir }}/{{ $planFileName }}`.
+2. Determine which spec files to create or update. Read related specs and check for contradictions. 
+3. Draft changes covering data structures, architecture decisions, data models, API contracts behavioral requirements. Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template to generate the spec.
+4. Describe the plan to the developer. Start with talking about the abstraction model and the data structures involved and, if applicable, separate the discussion into the different parts of the system (for example, the frontend, backend, database, different microservices, etc.). Here are some guidelines for describing the plan:
 
 Show the interfaces in this format:
 ```
@@ -162,14 +166,14 @@ If possible, draw a simplified diagram of the data structures and how they conne
 
 4. Ask the developer to confirm the spec changes.
 
-## Criteria
+#### Criteria
 
 - [ ] Spec changes drafted
 - [ ] No unresolved contradictions
 - [ ] Changes written to {{ $baseDir }}/{{ $specFolder }} files
 - [ ] Developer confirms changes to the spec
 
-### scope-feature
+### scope-plan
 
 Follow these steps:
 
@@ -179,7 +183,7 @@ Follow these steps:
 4. Order the tasks from high priority, medium priority, and low priority.
 5. Ask the developer to confirm the tasks.
 
-## Criteria
+#### Criteria
 
 - [ ] {{ $baseDir }}/{{ $taskFileName }} populated with tasks ordered by priority
 - [ ] Each task is concrete and testable
@@ -204,7 +208,7 @@ For each task:
 
 Once the tests are designed and written, summarize the test cases and explain the test tooling that was created. Then ask the developer to confirm the tests are correct and complete. Be sure to explain why the interface is necessary for the task and, if applicable, the reasoning behind the test cases in detail and why they are important. If the developer rejects the test cases, ask them to explain why and work with them to design new test cases that are acceptable to them. Once the developer confirms the test cases, make sure they fail due to the interface not being implemented, not due to other errors such as syntax or linting.
 
-## Criteria
+#### Criteria
 
 - [ ] Interface/contract defined
 - [ ] Test tooling constructed
@@ -227,7 +231,7 @@ Execute the following steps in a loop until all tests pass:
 
 After completing the loop, check if there are any tasks not completed in `{{ $baseDir }}/{{ $taskFileName }}`. If there are, suggest a rollback to the tdd-red phase to write tests for the missing functionality. Measure the code coverage of the tests and ensure it is at least 80% otherwise suggest a rollback to the tdd-red phase to write more tests.
 
-## Criteria
+#### Criteria
 
 - [ ] Implementation written
 - [ ] All tests PASS (green)
@@ -298,7 +302,7 @@ Then, complete these steps:
 2. Teach the developer about the changes to the specs and the code implementation. Have a conversation with the developer about the changes to the specs and the implementation, like a senior developer would to a junior developer. Use diagrams and code examples to help explain the changes. If the developer does not understand the changes, ask them to explain why and work with them to understand the changes. Once the developer understands the changes, ask them to confirm they understand the changes.
 3. Ask the developer to confirm they understand the changes. If they do not understand the changes, ask them to explain why and work with them to understand the changes. Once the developer understands the changes, ask them to confirm they understand the changes.
 
-## Criteria
+#### Criteria
 
 - [ ] Specs updated to reflect code as built
 - [ ] Gaps and phantom specs identified
@@ -334,8 +338,34 @@ Ask as many questions as you need to be at least 95% sure that you understand:
 - a blank `{{ $baseDir }}/{{ $sessionStateName }}` file
 - a blank `{{ $baseDir }}/{{ $taskFileName }}` file
 
-## Criteria
+#### Criteria
 
 - [ ] {{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }} populated
 - [ ] At least one domain spec created and linked to {{ $specIndexName }}
 - [ ] Developer reviewed and accepted
+
+### describe-bug
+
+Execute the following steps:
+
+1. Ask the developer to describe the bug and ask clarifying questions about it. After each response, state your confidence level (0-100%) in understanding what the developer is describing. Continue asking questions until you are at least 90% confident in what the bug is and what might be causing it. Topics for questions may include:
+
+- the environment in which the bug occurs (e.g. browser, mobile app, desktop app, server, etc.)
+- the steps taken to reproduce the bug
+- the expected behavior and the actual behavior
+- any other anomalies that might be related to the bug
+- what the developer might suspect is causing the bug
+- any recent changes that might have introduced the bug
+
+2. After reaching >90% confidence, theorize what might be causing the bug. Suggest a plan to test the theory and ask the developer to tell you if the theory is correct or not. If the theory is incorrect, then go back to step 1 and repeat this process.
+
+3. Once we have a correct theory, then do the following:
+
+- Compile an issue spec for the bug using `{{ $baseDir }}/{{ $refsFolder }}/{{ $bugSpecRef }}` as a template.
+- Write the spec to `{{ $baseDir }}/{{ $planFileName }}`.
+- Ask the developer to confirm the spec. If they do not understand the spec, ask them to explain why and work with them to understand the spec. Once the developer understands the spec, ask them to confirm they understand the spec.
+
+#### Criteria
+
+- [ ] Compiled issue spec written to {{ $baseDir }}/{{ $planFileName }}
+- [ ] Developer confirms understanding
