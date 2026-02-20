@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"os"
 	"os/signal"
@@ -14,37 +13,51 @@ import (
 func main() {
 	// parse command line arguments: "run <workflow-name>"
 	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "usage: claudemod run <workflow-name>\n")
+		fmt.Fprintf(os.Stderr, "usage: claudemod <command>\n\ncommands:\n  init                scaffold .claudemod/ and .claude/ without launching Claude\n  run <workflow-name> run a workflow\n")
 		os.Exit(1)
 	}
-	var workflowName string
+
 	switch os.Args[1] {
+	case "init":
+		wd, err := os.Getwd()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
+			os.Exit(1)
+		}
+		if err := app.SetupPluginFolder(wd); err != nil {
+			fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("claudemod: initialized .claudemod/ scaffold")
+		return
+
 	case "run":
 		if len(os.Args) < 3 {
 			fmt.Fprintf(os.Stderr, "usage: claudemod run <workflow-name>\n")
 			os.Exit(1)
 		}
-		workflowName = os.Args[2]
+
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %s\nusage: claudemod run <workflow-name>\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "unknown command: %s\nusage: claudemod <command>\n\ncommands:\n  init                scaffold .claudemod/ and .claude/ without launching Claude\n  run <workflow-name> run a workflow\n", os.Args[1])
 		os.Exit(1)
 	}
+
+	workflowName := os.Args[2]
 
 	// trap signals and cancel context on exit
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// create a new app
-	app, err := app.NewApp()
+	a, err := app.NewApp()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
 		os.Exit(1)
 	}
-	defer app.Close()
+	defer a.Close()
 
 	// run the workflow
-	err = app.RunWorkflow(ctx, workflowName)
-	if err != nil {
+	if err := a.RunWorkflow(ctx, workflowName); err != nil {
 		fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
 		os.Exit(1)
 	}
