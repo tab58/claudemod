@@ -1,286 +1,195 @@
 # claudemod
 
-A developer-focused workflow builder that uses Claude Code to focus on incremental feature delivery for production-grade projects.
+A developer-focused workflow orchestrator for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that drives incremental feature delivery through structured, multi-phase development workflows.
 
 ## How it works
 
-ClaudeMod uses a Go PTY wrapper for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that sits between your terminal and the Claude Code process. It intercepts all I/O for logging, redaction, and injection while preserving the full interactive TUI experience.
+claudemod runs predefined development workflows by spawning sequential Claude Code sessions, each with a phase-specific system prompt. A workflow progresses through phases (e.g. discuss, spec, scope, TDD red/green, code review) with session state persisted between phases so Claude picks up where it left off.
+
+```
+claudemod run feature
+  │
+  ├─ Phase 1: discuss-feature  → spawns Claude Code session with discuss prompt
+  ├─ Phase 2: spec-feature     → spawns Claude Code session with spec prompt
+  ├─ Phase 3: scope-feature    → spawns Claude Code session with scoping prompt
+  ├─ Phase 4: tdd-red          → spawns Claude Code session with test-writing prompt
+  ├─ Phase 5: tdd-green        → spawns Claude Code session with implementation prompt
+  ├─ Phase 6: code-review      → spawns Claude Code session with review prompt
+  └─ Phase 7: synthesize-specs → spawns Claude Code session with synthesis prompt
+```
+
+Under the hood, each session runs on a PTY bridge that sits between your terminal and the Claude Code process:
 
 ```
 User Terminal <──stdin/stdout──> claudemod (PTY master) <──PTY slave──> Claude Code
-                                       │
-                                 Middleware Pipeline
-                                 ├─ InputMiddleware[]   (user → claude)
-                                 └─ OutputMiddleware[]   (claude → user)
 ```
-
-claudemod spawns Claude Code on a pseudo-terminal (PTY) and holds the master end. Two goroutines pump data between your real terminal and the PTY — one for input (keystrokes) and one for output (TUI rendering). An optional middleware pipeline can observe or transform data in either direction.
 
 Key behaviors:
 
-- **Transparent by default** — with no config, claudemod is a pure passthrough. Claude Code looks and works identically.
-- **Environment stripping** — `CLAUDECODE`, `CLAUDE_CODE_SSE_PORT`, and `CLAUDE_CODE_ENTRYPOINT` are removed from the child environment so Claude Code does not detect a nested session and refuse to start.
+- **Workflow-driven** — each phase has its own system prompt, exit criteria, and rollback targets. Phase transitions are automatic.
+- **Session state** — state is persisted in `.claudemod/SESSION_STATE.json` between phases. If interrupted (Ctrl+C), the workflow resumes at the interrupted phase on next run.
+- **Rollback support** — phases can roll back to earlier phases when concrete problems are discovered (e.g. requirements misunderstood, spec gaps).
+- **Environment stripping** — `CLAUDECODE`, `CLAUDE_CODE_SSE_PORT`, and `CLAUDE_CODE_ENTRYPOINT` are removed from the child environment so Claude Code does not detect a nested session.
 - **Signal forwarding** — `SIGWINCH` (terminal resize), `SIGINT`, and `SIGTERM` are forwarded to the child process. Window size changes are synced to the PTY.
-- **Raw mode** — the user's terminal is placed into raw mode so keystrokes pass through unmodified to the PTY, then restored on exit.
+- **Raw mode** — the user's terminal is placed into raw mode so keystrokes pass through unmodified, then restored on exit.
 
 ## Prerequisites
 
 - **Go 1.24+** (uses the standard Go toolchain)
 - **macOS or Linux** (PTY support via `github.com/creack/pty` — no Windows support)
 - **Claude Code CLI** installed at `~/.local/bin/claude` or anywhere in `$PATH`
+- **[Task](https://taskfile.dev/)** (optional, for build commands)
 
 ## Install
 
 ```bash
 # Clone and build
 git clone <repo-url> && cd claudemod
-make build
+task build
 
 # Binary is at bin/claudemod
 ./bin/claudemod
 
 # Or install to ~/.local/bin
-make install
+task install
+```
+
+If you don't have `task` installed, you can build directly:
+
+```bash
+go build -o bin/claudemod cmd/claudemod/main.go
 ```
 
 ## Usage
 
 ```bash
-# Run with no config — pure passthrough
-claudemod
+# Scaffold .claudemod/ and .claude/ in the current project (without launching Claude)
+claudemod init
 
-# Run with a config file
-claudemod --config ~/.claudemod/config.yaml
-
-# Pass arguments through to Claude Code (after --)
-claudemod -- --model opus --continue
-
-# Combine config and Claude args
-claudemod --config ~/.claudemod/config.yaml -- --model opus
+# Run a workflow
+claudemod run <workflow-name>
 ```
 
-### Flags
+### Commands
 
-| Flag              | Description                                                                                     |
-| ----------------- | ----------------------------------------------------------------------------------------------- |
-| `--config <path>` | Path to a YAML config file. Without this, claudemod runs as a pure passthrough with no plugins. |
+| Command                      | Description                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| `claudemod init`             | Scaffold `.claudemod/` and `.claude/` directories with workflow files       |
+| `claudemod run <workflow>`   | Run a named workflow (e.g. `bootstrap`, `feature`)                          |
 
-Everything after `--` is forwarded directly to the Claude Code binary as arguments.
+### Available workflows
+
+| Workflow    | Phases                                                                                             | Purpose                                        |
+| ----------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `bootstrap` | bootstrap                                                                                          | Explore the codebase and generate initial specs |
+| `feature`   | discuss-feature, spec-feature, scope-feature, tdd-red, tdd-green, code-review, synthesize-specs    | Full TDD feature development lifecycle          |
 
 ### Claude binary resolution
 
 claudemod finds the `claude` binary in this order:
 
-1. `claude_path` in the config file (if set)
-2. `~/.local/bin/claude` (the default Claude Code install location)
-3. `claude` anywhere in `$PATH`
+1. `~/.local/bin/claude` (the default Claude Code install location)
+2. `claude` anywhere in `$PATH`
 
-## Configuration
+## The `.claudemod/` folder
 
-Copy the example config and edit it:
+Running `claudemod init` or `claudemod run` scaffolds a `.claudemod/` directory in your project:
 
-```bash
-mkdir -p ~/.claudemod
-cp configs/claudemod.example.yaml ~/.claudemod/config.yaml
+```
+.claudemod/
+  WORKFLOW.md              Generated workflow definition (phase prompts and criteria)
+  SESSION_STATE.json       Current phase and action (advance/restart/rollback/complete)
+  FIX_PLAN.md              Task list with checkboxes for the current phase
+  CHANGELOG.md             Dated entries summarizing completed work
+  spec/                    Feature specs generated during workflows
+    INDEX.md               Spec index
+  refs/                    Reference templates
+    SPEC.md                Template for individual specs
+    SPEC_INDEX.md           Template for the spec index
 ```
 
-### Config format
-
-```yaml
-# Path to claude binary (optional, auto-detected if empty)
-claude_path: ""
-
-# Directory for log files
-log_dir: "~/.claudemod/logs"
-
-# Plugins — each has a name, enabled flag, and options map
-plugins:
-  - name: logger
-    enabled: true
-    options:
-      log_input: true
-      log_output: true
-
-  - name: filter
-    enabled: false
-    options:
-      patterns:
-        - "sk-[a-zA-Z0-9]{20,}"
-        - "AKIA[0-9A-Z]{16}"
-
-  - name: inject
-    enabled: false
-    options:
-      text: ""
-```
-
-Paths starting with `~/` are expanded to your home directory.
-
-## Built-in plugins
-
-### logger
-
-Writes a JSONL audit log of all data flowing through the pipeline. ANSI escape sequences are stripped from logged data so logs contain clean text. Each session gets its own log file.
-
-**Options:**
-
-| Option       | Type   | Default             | Description                  |
-| ------------ | ------ | ------------------- | ---------------------------- |
-| `log_dir`    | string | `~/.claudemod/logs` | Directory for log files      |
-| `log_input`  | bool   | `true`              | Log data from user to Claude |
-| `log_output` | bool   | `true`              | Log data from Claude to user |
-
-**Log format** (one JSON object per line):
-
-```json
-{
-  "timestamp": "2026-02-17T20:15:03.123Z",
-  "session_id": "abc-123",
-  "direction": "output",
-  "data": "Hello! How can I help?",
-  "raw_len": 847
-}
-```
-
-- `data` — ANSI-stripped text content
-- `raw_len` — original byte count (including escape sequences)
-
-The logger never modifies the data stream — it observes only.
-
-### filter
-
-Redacts sensitive patterns from both input and output using regex. Matched text is replaced with `[REDACTED]`.
-
-**Options:**
-
-| Option     | Type            | Default | Description              |
-| ---------- | --------------- | ------- | ------------------------ |
-| `patterns` | list of strings | `[]`    | Regex patterns to redact |
-
-**Example patterns:**
-
-```yaml
-patterns:
-  - "sk-[a-zA-Z0-9]{20,}" # OpenAI API keys
-  - "AKIA[0-9A-Z]{16}" # AWS access key IDs
-  - "ghp_[a-zA-Z0-9]{36}" # GitHub personal access tokens
-```
-
-When combined with the logger, the filter runs first in the pipeline so redacted values never reach the log files.
-
-### inject
-
-Prepends text to the first input chunk sent to Claude Code. Fires exactly once per session, then passes all subsequent input through unmodified.
-
-**Options:**
-
-| Option | Type   | Default | Description                        |
-| ------ | ------ | ------- | ---------------------------------- |
-| `text` | string | `""`    | Text to prepend to the first input |
-
-## Plugin pipeline
-
-Plugins execute in the order they appear in the config. Each plugin can implement `InputMiddleware`, `OutputMiddleware`, or both:
-
-- **InputMiddleware** — transforms data flowing from user to Claude (`ProcessInput`)
-- **OutputMiddleware** — transforms data flowing from Claude to user (`ProcessOutput`)
-
-Data flows through the pipeline as immutable `Chunk` values. Middleware returns new chunks — it never mutates the original. If a middleware returns an empty chunk, the pipeline short-circuits and no further middleware runs for that chunk.
+It also ensures `.claude/settings.local.json` has read/write/edit permissions for the `.claudemod/` directory.
 
 ## Project structure
 
 ```
-cmd/claudemod/main.go              Entry point, flag parsing, orchestration
+cmd/claudemod/main.go                     Entry point, subcommand dispatch
 internal/
-  bridge/bridge.go                  PTY creation, child spawn, I/O pump goroutines
-  terminal/rawmode.go               Enter/restore raw terminal mode
-  terminal/winsize.go               Get/set window size (TIOCGWINSZ/TIOCSWINSZ)
-  middleware/types.go               Chunk, InputMiddleware, OutputMiddleware, Plugin
-  middleware/pipeline.go            Chain middleware execution
-  signals/signals.go                SIGWINCH, SIGINT, SIGTERM forwarding
-  config/config.go                  YAML config parsing
-  plugin/registry.go                Plugin name → factory registry
-  plugin/loader.go                  Instantiate plugins from config
-  ansi/parser.go                    ANSI escape sequence stripper
-  plugins/logger/logger.go          JSONL audit logging
-  plugins/filter/filter.go          Regex-based pattern redaction
-  plugins/inject/inject.go          Input text injection
+  app/
+    app.go                                 App struct, workflow runner loop, session state I/O
+    workflow.go                            Workflow and phase definitions (bootstrap, feature)
+    claude_folder.go                       .claudemod/ and .claude/ scaffolding
+    templates.go                           Go template rendering for prompts and workflow files
+    files.go                               File/directory existence helpers
+    prompt_system.go.tmpl                  System prompt template (phase instructions)
+    workflow.go.tmpl                       Workflow definition template (WORKFLOW.md)
+    refs/                                  Embedded reference templates (SPEC.md, SPEC_INDEX.md)
+  launcher/
+    launcher.go                            Spawns Claude Code sessions via the bridge
+    claude.go                              Claude binary resolution
+  claudecode/
+    bridge/
+      bridge.go                            PTY owner, raw mode, stdin pump, signal handler
+      session.go                           Single PTY child process with output pump
+      config.go                            Bridge and session config, env var stripping
+      compat.go                            Platform compatibility
+    terminal/
+      rawmode.go                           Enter/restore raw terminal mode
+      winsize.go                           Get/set window size (TIOCGWINSZ/TIOCSWINSZ)
+    middleware/
+      types.go                             Chunk, InputMiddleware, OutputMiddleware, Plugin
+      pipeline.go                          Chain middleware execution
+    config/config.go                       YAML config parsing
+    plugin/
+      registry.go                          Plugin name → factory registry
+      loader.go                            Instantiate plugins from config
+    ansi/parser.go                         ANSI escape sequence stripper
+    plugins/
+      logger/logger.go                     JSONL audit logging
+      filter/filter.go                     Regex-based pattern redaction
+      inject/inject.go                     Input text injection
+    signals/signals.go                     SIGWINCH, SIGINT, SIGTERM forwarding
+  utils/
+    template.go                            Template helpers
+    template_funcs.go                      Custom template functions
 ```
 
 ## Development
 
 ```bash
 # Build
-make build
+task build
 
 # Run tests
-make test
+task test
 
 # Run tests with race detector
-make test-race
+task test-race
 
 # Run go vet + staticcheck
-make lint
+task lint
 
 # Clean build artifacts
-make clean
+task clean
 ```
 
-### Writing a custom plugin
+Or use `go` directly:
 
-1. Create a new package under `internal/plugins/yourplugin/`.
-2. Implement `middleware.Plugin` (the `Name()` method) plus `InputMiddleware` and/or `OutputMiddleware`.
-3. Register it in an `init()` function:
-
-```go
-package yourplugin
-
-import (
-    "github.com/tbright/claudemod/internal/middleware"
-    "github.com/tbright/claudemod/internal/plugin"
-)
-
-func init() {
-    plugin.Register("yourplugin", newYourPlugin)
-}
-
-type YourPlugin struct{}
-
-func newYourPlugin(opts map[string]any) (middleware.Plugin, error) {
-    return &YourPlugin{}, nil
-}
-
-func (p *YourPlugin) Name() string { return "yourplugin" }
-
-func (p *YourPlugin) ProcessOutput(chunk middleware.Chunk) middleware.Chunk {
-    // Return chunk unmodified, or use chunk.WithData(newBytes) to transform
-    return chunk
-}
+```bash
+go build -o bin/claudemod cmd/claudemod/main.go
+go test -cover ./...
+go test -race ./...
+go vet ./...
 ```
-
-4. Add a blank import in `cmd/claudemod/main.go`:
-
-```go
-_ "github.com/tbright/claudemod/internal/plugins/yourplugin"
-```
-
-5. Add it to your config:
-
-```yaml
-plugins:
-  - name: yourplugin
-    enabled: true
-    options: {}
-```
-
-If your plugin holds resources (open files, connections), implement `io.Closer` and it will be cleaned up on exit.
 
 ## Dependencies
 
-| Module                   | Purpose                                       |
-| ------------------------ | --------------------------------------------- |
-| `github.com/creack/pty`  | PTY creation and management                   |
-| `golang.org/x/term`      | Raw terminal mode                             |
-| `golang.org/x/sys`       | ioctl for window size (TIOCGWINSZ/TIOCSWINSZ) |
-| `gopkg.in/yaml.v3`       | YAML config parsing                           |
-| `github.com/google/uuid` | Session IDs for log files                     |
+| Module                      | Purpose                                       |
+| --------------------------- | --------------------------------------------- |
+| `github.com/creack/pty`     | PTY creation and management                   |
+| `github.com/fsnotify/fsnotify` | File system watching for signal file detection |
+| `github.com/segmentio/ksuid` | Unique session IDs                            |
+| `github.com/google/uuid`    | UUID generation                               |
+| `golang.org/x/term`         | Raw terminal mode                             |
+| `golang.org/x/sys`          | ioctl for window size (TIOCGWINSZ/TIOCSWINSZ) |
+| `gopkg.in/yaml.v3`          | YAML parsing                                  |
