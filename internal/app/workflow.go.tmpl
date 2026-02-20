@@ -316,17 +316,20 @@ Explore the codebase and look for the following things:
 - design patterns
 - dependencies
 - major domains
-  Ask as many questions as you need to be at least 95% sure that you understand:
+
+Ask as many questions as you need to be at least 95% sure that you understand:
+
 - the purpose of the application
 - the application's intended users
 - any key features of this application
 - how it fits into a larger system, if applicable
 - architecture decisions
-  Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specIndexRef }}` as a template and create an `{{ $specIndexName }}` that summarizes the information gathered in the `{{ $baseDir }}/{{ $specFolder }}` folder.
-  Generate specs for each identified domain into that folder with the `{domain
-}/{subdomain}.MD` filename pattern and use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template to generate these specs and write them to the
-  `{{ $baseDir }}/{{ $specFolder }}` folder and link them in the `{{ $specIndexName }}` file.
-  Also generate the following files:
+
+1. Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specIndexRef }}` as a template and create an `{{ $specIndexName }}` that summarizes the information gathered in the `{{ $baseDir }}/{{ $specFolder }}` folder.
+
+2. Generate specs for each identified domain into that folder with the `{domain}/{subdomain}.MD` filename pattern and use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template to generate these specs and write them to the `{{ $baseDir }}/{{ $specFolder }}` folder and link them in the `{{ $specIndexName }}` file.
+
+3. Also generate the following files:
 - a blank `{{ $baseDir }}/{{ $sessionStateName }}` file
 - a blank `{{ $baseDir }}/{{ $taskFileName }}` file
 

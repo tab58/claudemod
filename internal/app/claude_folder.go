@@ -25,13 +25,13 @@ func SetupPluginFolder(wd string) error {
 		return err
 	}
 
-	// set the permissions for the .claude/claudemod directory
+	// set the permissions for the .claudemod directory
 	err = ensureClaudeModPermissions(wd)
 	if err != nil {
 		return err
 	}
 
-	// populate the .claude/claudemod folder
+	// populate the .claudemod folder
 	err = populateClaudeModFolder(wd)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func getClaudeFolderPath(wd string) string {
 }
 
 func getClaudeModFolderPath(wd string) string {
-	return filepath.Join(getClaudeFolderPath(wd), "claudemod")
+	return filepath.Join(wd, ".claudemod")
 }
 
 // ensureClaudeFolderExists creates a .claude directory in the current working directory if it doesn't exist. No-op if it already exists.
@@ -74,7 +74,7 @@ func ensureClaudeFolderExists(wd string) error {
 }
 
 func ensureClaudeModFolderExists(wd string) error {
-	// create the .claude/claudemod folder if it doesn't exist
+	// create the .claudemod folder if it doesn't exist
 	claudeModFolderPath := getClaudeModFolderPath(wd)
 	if !dirExists(claudeModFolderPath) {
 		err := os.MkdirAll(claudeModFolderPath, 0755)
@@ -93,7 +93,7 @@ type ClaudeSettings struct {
 }
 
 func ensureClaudeModPermissions(wd string) error {
-	// create the .claude/claudemod/settings.local.json file if it doesn't exist
+	// ensure .claude/settings.local.json exists for permissions
 	settingsFilePath := filepath.Join(getClaudeFolderPath(wd), "settings.local.json")
 	if !fileExists(settingsFilePath) {
 		err := os.WriteFile(settingsFilePath, []byte("{}"), 0644)
@@ -115,9 +115,9 @@ func ensureClaudeModPermissions(wd string) error {
 
 	// append the permissions to the settings data
 	permissions := []string{
-		"Read(.claude/claudemod/*)",
-		"Write(.claude/claudemod/*)",
-		"Edit(.claude/claudemod/*)",
+		"Read(.claudemod/*)",
+		"Write(.claudemod/*)",
+		"Edit(.claudemod/*)",
 	}
 	for _, permission := range permissions {
 		if !slices.Contains(settingsJson.Permissions.Allow, permission) {
@@ -139,7 +139,7 @@ func ensureClaudeModPermissions(wd string) error {
 }
 
 func populateClaudeModFolder(wd string) error {
-	// copy the refs folder to the .claude/claudemod/refs folder
+	// copy the refs folder to the .claudemod/refs folder
 	refsFilePath := filepath.Join(getClaudeModFolderPath(wd), "refs")
 	if !dirExists(refsFilePath) {
 		err := os.MkdirAll(refsFilePath, 0755)
@@ -156,9 +156,9 @@ func populateClaudeModFolder(wd string) error {
 		return err
 	}
 
-	// write the workflow file to the .claude/claudemod/workflow.go file
+	// write the workflow file to the .claudemod/WORKFLOW.md file
 	values := WorkflowValues{
-		BaseFolderPath: ".claude/claudemod",
+		BaseFolderPath: ".claudemod",
 		Spec: WorkflowSpecValues{
 			FolderRelPath: "spec",
 			IndexName:     "INDEX.md",
