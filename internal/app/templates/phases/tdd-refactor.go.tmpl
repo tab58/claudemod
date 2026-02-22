@@ -1,0 +1,46 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### tdd-refactor
+
+Read `{{ $baseDir }}/{{ $taskFileName }}` to understand the completed implementation tasks. Then review the code written during tdd-green and identify refactoring opportunities. Focus on the following areas:
+
+- **Extract helpers** — Reduce duplication by extracting shared logic into well-named helper functions.
+- **Improve naming** — Rename variables, functions, and types for clarity. Names should be descriptive and unambiguous.
+- **Simplify control flow** — Reduce nesting (max 4 levels), use early returns and guard clauses.
+- **Ensure immutability** — Never mutate inputs. Return new copies of data structures.
+- **Keep functions small** — Each function should be under 50 lines and focused on a single responsibility.
+- **Keep files focused** — Each file should be under 500 lines. Split large files by responsibility.
+- **Remove dead code** — Delete unused imports, variables, unreachable branches, and commented-out code.
+- **Use named constants** — Replace magic numbers and strings with named constants.
+
+Present the full list of proposed refactoring changes to the developer and ask them to confirm before proceeding. The developer may accept, reject, or revise individual items.
+
+For each confirmed refactoring change, perform the following steps in order:
+
+1. **State the change** — Print which refactoring you are currently applying (e.g. "Refactoring 1: Extract helper function for X") so the developer can track progress.
+2. **Apply the change** — Make the refactoring change. Do not alter behavior — the existing tests must continue to pass without modification.
+3. **Run the tests** — Run the full test suite after every change. All tests MUST pass. If any test fails, revert the change and explain what went wrong.
+4. **Ask the developer to confirm** — Present the change and ask the developer to confirm it is acceptable. If the developer rejects it, revert and move on.
+
+Once all confirmed refactoring changes have been applied, run the full test suite and measure code coverage. Print a final summary listing each refactoring change and whether it was applied or skipped.
+
+#### Criteria
+
+For EACH confirmed refactoring change:
+- [ ] Change applied without altering behavior
+- [ ] Tests PASS (green)
+- [ ] Developer confirms change
+
+All refactoring complete:
+- [ ] Every confirmed refactoring change processed
+- [ ] Full test suite passes
+- [ ] Code coverage is at least 80%

@@ -22,8 +22,12 @@ var Feature = Workflow{
 			RollbackTargets: []string{"discuss-feature", "spec-plan", "scope-plan", "tdd-red"},
 		},
 		{
-			Name:            "code-review",
+			Name:            "tdd-refactor",
 			RollbackTargets: []string{"discuss-feature", "spec-plan", "scope-plan", "tdd-red", "tdd-green"},
+		},
+		{
+			Name:            "code-review",
+			RollbackTargets: []string{"discuss-feature", "spec-plan", "scope-plan", "tdd-red", "tdd-green", "tdd-refactor"},
 		},
 		{Name: "synthesize-specs"},
 	},

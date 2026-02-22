@@ -73,18 +73,16 @@ Execute the following steps in a loop until the code review yields either only l
 - No N+1 query patterns.
 - No unnecessary allocations in hot paths (e.g., allocating inside a tight loop when a pre-allocated buffer would suffice).
 
-2. If the code does not follow these principles, suggest a refactoring plan and ask the developer to confirm it. Structure the refactoring plan as a list of tasks to be completed with critical priority, high priority, medium priority, and low priority.
-3. After confirmation, append refactoring tasks to `{{ $baseDir }}/{{ $taskFileName }}` under a `## Refactoring Tasks` heading using the same checkbox format (`- [ ]`). Keep these separate from the implementation tasks written by scope-plan.
-4. Then execute the refactoring tasks in order of priority, starting with the critical priority tasks. For each refactoring task:
+2. Present all findings to the developer, organized by severity (critical, high, medium, low).
+3. Based on findings, recommend one of the following actions:
 
-- write the minimal implementation to make the tests pass
-- run the tests and confirm they pass (green)
-- ask the developer to confirm the implementation
-- if the developer rejects the refactoring task, ask them to explain why and work with them to design a new or revised implementation that is acceptable to them. Once the developer confirms the implementation, tick the task checkbox as completed in `{{ $baseDir }}/{{ $taskFileName }}`.
+- **Rollback to tdd-refactor** — if critical or high severity issues were found that require code changes. List the specific issues that need to be addressed.
+- **Advance** — if no issues were found, or only medium/low severity issues remain that are acceptable to ship.
+
+4. Ask the developer to confirm the recommended action. The developer may override the recommendation.
 
 **Criteria**
 
 - [ ] Code review completed against all checklist categories
-- [ ] Refactoring tasks appended to {{ $baseDir }}/{{ $taskFileName }} under ## Refactoring Tasks
-- [ ] Developer confirms review
-- [ ] All refactoring tasks completed
+- [ ] Findings presented to developer with severity levels
+- [ ] Developer confirms review outcome (advance or rollback)
