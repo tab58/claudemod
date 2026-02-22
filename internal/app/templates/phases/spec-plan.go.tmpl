@@ -1,0 +1,69 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### spec-plan
+
+Follow these steps:
+
+1. Read the requirements from `{{ $baseDir }}/{{ $planFileName }}`.
+2. Determine which spec files to create or update. Read related specs and check for contradictions. 
+3. Draft changes covering data structures, architecture decisions, data models, API contracts behavioral requirements. Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template to generate the spec.
+4. Describe the plan to the developer. Start with talking about the abstraction model and the data structures involved and, if applicable, separate the discussion into the different parts of the system (for example, the frontend, backend, database, different microservices, etc.). Here are some guidelines for describing the plan:
+
+Show the interfaces in this format:
+```
+type MyNewInterface interface {
+	DoSomething() error
+	AnotherMethod() (string, error)
+  DoSomethingElse() (int, error)
+}
+```
+
+Show the data structures in this format:
+```
+// MyNewStruct is a new struct that represents a new data structure.
+// Implements the MyNewInterface interface.
+type MyNewStruct struct {
+	Name string `json:"name"`
+	Age  int    `json:"age,omitempty"`
+
+  somePrivateField      string
+  anotherPrivateField   map[string]string
+  myCoolChannel         <-chan string
+  myCoolMutex           sync.Mutex
+}
+```
+
+Talk about the functions needed and how it connects to the greater whole.
+When talking about the system as a whole, if a user or event is involved trace the execution paths from start to finish.
+If possible, draw a simplified diagram of the data structures and how they connect to each other and the user or event in this format:
+```
+                          +-----------------------+
+            +-----------> |   Payment Processor   | ----+
+            |             +-----------------------+     |
+            |                                           |
+        route request                           confirms payment
+    to payment processor                                |
+            |                                           v
++-----------------------+   submits order   +-----------------------+
+|   HTTP POST /payment  | ----------------> |     Order Processor   |
++-----------------------+ <---------------- +-----------------------+
+                           confirms order                           
+```
+
+4. Ask the developer to confirm the spec changes.
+
+#### Criteria
+
+- [ ] Spec changes drafted
+- [ ] No unresolved contradictions
+- [ ] Changes written to {{ $baseDir }}/{{ $specFolder }} files
+- [ ] Developer confirms changes to the spec

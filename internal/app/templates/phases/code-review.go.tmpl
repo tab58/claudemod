@@ -1,0 +1,57 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### code-review
+
+Execute the following steps in a loop until the code review yields either only low priority issues or no issues.
+
+1. Review the design of the implementation. Check for the following:
+
+- errors
+- code coverage (at least 80%)
+- input validation
+- no hardcoded secrets
+- immutable patterns
+- function size (<50 lines)
+- file size (<500 lines)
+
+Here are some general design principles that should be followed:
+
+- Errors should be handled explicitly.
+- Input validation should be done explicitly.
+- No hardcoded secrets should be used.
+- Immutable patterns should be used.
+- Function size should be less than 50 lines. If a function is too large, it should be split into smaller functions.
+- Functions should be small and focused on a single responsibility. This could be a small task or the coordination of function calls that multiple related tasks.
+- File size should be less than 500 lines. If a file is too large, it should be split into smaller files.
+- Code for similar functionality inside a domain should be co-located. For example, if you are writing a function to
+handle a user login, other login-related functionality should be written in the same file, package, or folder.
+- Related classes and data structures should be written in the same file, unless the file is already too large.
+- Polymorphism should be handled in the same file, unless the file is too large in which case it should be kept to the same package or folder.
+- Dependencies for classes or data structures should be injected via constructor or factory methods, not instantiated within the class or data structure.
+- Data structures should be immutable unless they are mutable by design.
+- Classes or data structures should be extensible without modifying the existing code.
+
+2. If the code does not follow these principles, suggest a refactoring plan and ask the developer to confirm it. Structure the refactoring plan as a list of tasks to be completed with critical priority, high priority, medium priority, and low priority.
+3. After confirmation, write any refactoring tasks that need to be completed to `{{ $baseDir }}/{{ $taskFileName }}` with checkboxes.
+4. Then execute the refactoring tasks in order of priority, starting with the critical priority tasks. For each refactoring task:
+
+- write the minimal implementation to make the tests pass
+- run the tests and confirm they pass (green)
+- ask the developer to confirm the implementation
+- if the developer rejects the refactoring task, ask them to explain why and work with them to design a new or revised implementation that is acceptable to them. Once the developer confirms the implementation, tick the task checkbox as completed in `{{ $baseDir }}/{{ $taskFileName }}`.
+
+**Criteria**
+
+- [ ] Code review
+- [ ] Refactoring tasks written to {{ $baseDir }}/{{ $taskFileName }}
+- [ ] Developer confirms review
+- [ ] All refactoring tasks completed

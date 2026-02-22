@@ -1,0 +1,123 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+{{ $phaseLogName := .PhaseLogFileName -}}
+You are executing the ClaudeMod '{{ .PhaseName }}' phase.
+{{ .ExtraPrompt }}
+## Session Protocol
+
+### On Start
+
+1. Read `{{ $baseDir }}/{{ $sessionStateName }}`
+2. Read `{{ $baseDir }}/{{ $phaseLogName }}`
+3. Read `{{ $baseDir }}/{{ $taskFileName }}`
+4. Read `{{ $baseDir }}/{{ $planFileName }}`
+5. Read `{{ $baseDir }}/{{ $changelogName }}`
+6. Read `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and other specs in the `{{ $baseDir }}/{{ $specFolder }}` folder
+7. Drift detection: compare spec against code, flag discrepancies
+
+In reading {{ $sessionStateName }}, determine the action to take based on the action field.
+If the action is "advance", then this phase should be started fresh.
+If the action is "restart", then this phase has not been completed and should be restarted with the "discussion_summary" field as context and "recommendation" field as the next steps.
+If the action is "rollback", then this phase should be started with the "discussion_summary" field as context, "explanation" field as the reason for the rollback, and "recommendation" field as the next steps.
+
+### On Phase Exit
+
+Before signaling phase completion, update `{{ $baseDir }}/{{ $sessionStateName }}` with the following JSON structure:
+
+```
+{
+  "action": "advance",
+  "phase": "{{ .PhaseName }}",
+  "discussion_summary": <3-4 line summary of discussion>,
+  "recommendation": <2-3 line summary of what to focus on>
+}
+```
+
+### On End
+
+If work is incomplete, write `{{ $baseDir }}/{{ $sessionStateName }}` with:
+
+```
+{
+  "action": "restart",
+  "phase": "{{ .PhaseName }}",
+  "discussion_summary": <3-4 line summary of discussion>,
+  "recommendation": <2-3 line summary of what to focus on>
+}
+```
+
+If the workflow is complete, write `{{ $baseDir }}/{{ $sessionStateName }}` with:
+
+```
+{
+  "action": "complete",
+  "phase": "{{ .PhaseName }}"
+}
+```
+
+## Rollback
+
+Phases can signal a rollback to revisit an earlier phase when concrete problems are discovered.
+
+### When to Rollback
+
+- Requirements were misunderstood and need re-discussion
+- Spec gaps discovered during implementation
+- Wrong test assumptions that invalidate the test approach
+- Architectural issues that require rethinking the design
+
+### When NOT to Rollback
+
+- Minor fixable issues (fix in the current phase instead)
+- Speculative concerns without concrete evidence
+- Small test adjustments that can be handled inline
+
+### How to Signal Rollback
+
+1. In interactive mode, discuss with the developer and get agreement first
+2. Make sure only to rollback to valid rollback targets listed below
+3. Update `{{ $baseDir }}/{{ $sessionStateName }}` with:
+
+```
+{
+  "action": "rollback",
+  "phase": <the name of the phase to rollback to>,
+  "discussion_summary": <3-4 line summary of discussion>,
+  "explanation": <2-3 line summary of why rollback is needed>,
+  "recommendation": <2-3 line summary of what to focus on>
+}
+```
+{{ if .RollbackTargets }}
+Valid rollback targets: [{{ range $index, $target := .RollbackTargets }}{{ $target }}{{ if not (eq (add $index 1) (len $.RollbackTargets)) }}, {{ end }}{{ end }}]
+{{- else }}
+No rollback targets are defined for this phase.
+{{- end }}
+
+## Phase History
+{{ if .PhaseLogContent }}
+The following phases have been completed or transitioned so far:
+
+{{ .PhaseLogContent }}
+{{- else }}
+No phases have been completed yet. This is the first phase of the workflow.
+{{- end }}
+
+## Current Phase Instructions
+
+{{ .RenderedPhaseInstructions }}
+## Phase Transition
+
+Track the phase criteria listed above for this phase.
+When the developer indicates they want to move on (e.g., 'next phase', 'move on', 'continue'), check all criteria.
+If all criteria are met, first update `{{ $baseDir }}/{{ $sessionStateName }}` with what was accomplished and what the next phase should focus on.
+If criteria are unmet, list what remains and ask the developer if they want to address it or skip.
+
+## Exit Criteria
+
+Exit this session when the criteria listed above for this phase are met.

@@ -1,0 +1,37 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### tdd-red
+
+Write test cases for all the uncompleted tasks in the `{{ $baseDir }}/{{ $taskFileName }}` file.
+For each task:
+
+1. Define the interface/contract using language-appropriate constructs. Examples include:
+
+- Go: interface
+- TypeScript: interface/type
+- Python: Protocol/ABC,
+- Rust: trait
+
+2. Determine the test cases for the interfaces, such as nil-/null- pointer issues, negative indexes, or default values.
+3. Construct tooling for the tests, such as mocks, stubs, or test harnesses and fixtures.
+4. Write tests against the interface
+5. Run the tests — they MUST fail due to the interface not being implemented, not due to other errors such as syntax or linting
+
+Once the tests are designed and written, summarize the test cases and explain the test tooling that was created. Then ask the developer to confirm the tests are correct and complete. Be sure to explain why the interface is necessary for the task and, if applicable, the reasoning behind the test cases in detail and why they are important. If the developer rejects the test cases, ask them to explain why and work with them to design new test cases that are acceptable to them. Once the developer confirms the test cases, make sure they fail due to the interface not being implemented, not due to other errors such as syntax or linting.
+
+#### Criteria
+
+- [ ] Interface/contract defined
+- [ ] Test tooling constructed
+- [ ] Tests written
+- [ ] Developer confirms tests
+- [ ] Tests run and FAIL (red)

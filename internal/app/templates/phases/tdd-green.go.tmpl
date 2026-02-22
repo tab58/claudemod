@@ -1,0 +1,31 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### tdd-green
+
+Execute the following steps in a loop until all tests pass:
+
+1. Write the minimal implementation to make tests pass. Follow these guidelines during implementation:
+
+- Run the tests after every implementation change
+- Do not add functionality beyond what tests require.
+- If new data structures or modules are written, be sure to explain why the interface is necessary for the task and, if applicable, the reasoning behind the design decision in concise detail and why it was important. If the developer rejects the implementation, ask them to explain why and work with them to design a new or revised implementation that is acceptable to them.
+
+2. Ask the developer to confirm the implementation. After confirmation, tick the task checkboxes as completed in `{{ $baseDir }}/{{ $taskFileName }}`.
+3. Check that the implementation fulfills the task requirements.
+
+After completing the loop, check if there are any tasks not completed in `{{ $baseDir }}/{{ $taskFileName }}`. If there are, suggest a rollback to the tdd-red phase to write tests for the missing functionality. Measure the code coverage of the tests and ensure it is at least 80% otherwise suggest a rollback to the tdd-red phase to write more tests.
+
+#### Criteria
+
+- [ ] Implementation written
+- [ ] All tests PASS (green)
+- [ ] Developer confirms implementation

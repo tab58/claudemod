@@ -11,4 +11,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/segmentio/ksuid v1.0.4
+require (
+	github.com/looplab/fsm v1.0.3
+	github.com/segmentio/ksuid v1.0.4
+)

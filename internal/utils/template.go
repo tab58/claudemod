@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"embed"
 	"io"
 	"text/template"
 )
@@ -15,6 +16,17 @@ func NewTemplate(name string) *Template {
 		Template: template.New(name),
 	}
 	return t.Funcs(Funcs)
+}
+
+func ParseFS(fs embed.FS, patterns ...string) (*Template, error) {
+	tpl, err := template.ParseFS(fs, patterns...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Template{
+		Template: tpl.Funcs(Funcs),
+	}, nil
 }
 
 func (t *Template) Funcs(funcMap template.FuncMap) *Template {
@@ -39,6 +51,17 @@ func (t *Template) Parse(text string) (*Template, error) {
 
 func (t *Template) Execute(wr io.Writer, data any) error {
 	return t.Template.Execute(wr, data)
+}
+
+func NewTemplateFromFS(name string, fsys embed.FS, funcs template.FuncMap, patterns ...string) (*Template, error) {
+	t := NewTemplate(name)
+	if funcs != nil {
+		t.Funcs(funcs)
+	}
+	if _, err := t.Template.ParseFS(fsys, patterns...); err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
 func TemplateMust(t *Template, err error) *Template {

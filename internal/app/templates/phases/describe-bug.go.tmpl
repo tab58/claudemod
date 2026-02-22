@@ -1,0 +1,36 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### describe-bug
+
+Execute the following steps:
+
+1. Ask the developer to describe the bug and ask clarifying questions about it. After each response, state your confidence level (0-100%) in understanding what the developer is describing. Continue asking questions until you are at least 90% confident in what the bug is and what might be causing it. Topics for questions may include:
+
+- the environment in which the bug occurs (e.g. browser, mobile app, desktop app, server, etc.)
+- the steps taken to reproduce the bug
+- the expected behavior and the actual behavior
+- any other anomalies that might be related to the bug
+- what the developer might suspect is causing the bug
+- any recent changes that might have introduced the bug
+
+2. After reaching >90% confidence, theorize what might be causing the bug. Suggest a plan to test the theory and ask the developer to tell you if the theory is correct or not. If the theory is incorrect, then go back to step 1 and repeat this process.
+
+3. Once we have a correct theory, then do the following:
+
+- Compile an issue spec for the bug using `{{ $baseDir }}/{{ $refsFolder }}/{{ $bugSpecRef }}` as a template.
+- Write the spec to `{{ $baseDir }}/{{ $planFileName }}`.
+- Ask the developer to confirm the spec. If they do not understand the spec, ask them to explain why and work with them to understand the spec. Once the developer understands the spec, ask them to confirm they understand the spec.
+
+#### Criteria
+
+- [ ] Compiled issue spec written to {{ $baseDir }}/{{ $planFileName }}
+- [ ] Developer confirms understanding

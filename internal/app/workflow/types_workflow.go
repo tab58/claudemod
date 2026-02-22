@@ -1,17 +1,22 @@
-package app
+package workflow
 
-type Workflow struct {
-	Phases []WorkflowPhase
+type Phase struct {
+	Name            string
+	RollbackTargets []string
 }
 
-func (w *Workflow) GetFirstPhase() *WorkflowPhase {
+type Workflow struct {
+	Phases []Phase
+}
+
+func (w *Workflow) GetFirstPhase() *Phase {
 	if len(w.Phases) == 0 {
 		return nil
 	}
 	return &w.Phases[0]
 }
 
-func (w *Workflow) GetPhase(name string) *WorkflowPhase {
+func (w *Workflow) GetPhase(name string) *Phase {
 	for _, phase := range w.Phases {
 		if phase.Name == name {
 			return &phase
@@ -20,7 +25,7 @@ func (w *Workflow) GetPhase(name string) *WorkflowPhase {
 	return nil
 }
 
-func (w *Workflow) GetNextPhase(currentPhase string) *WorkflowPhase {
+func (w *Workflow) GetNextPhase(currentPhase string) *Phase {
 	for i, phase := range w.Phases {
 		if phase.Name == currentPhase {
 			if i < len(w.Phases)-1 {
@@ -39,9 +44,4 @@ func (w *Workflow) IsEndPhase(phaseName string) bool {
 		}
 	}
 	return false
-}
-
-type WorkflowPhase struct {
-	Name            string
-	RollbackTargets []string
 }

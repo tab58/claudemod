@@ -1,0 +1,26 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### scope-plan
+
+Follow these steps:
+
+1. Break the agreed work into concrete, implementable tasks.
+2. Write tasks to `{{ $baseDir }}/{{ $taskFileName }}` with checkboxes.
+3. Each task should be small enough to implement and test in one iteration.
+4. Order the tasks from high priority, medium priority, and low priority.
+5. Ask the developer to confirm the tasks.
+
+#### Criteria
+
+- [ ] {{ $baseDir }}/{{ $taskFileName }} populated with tasks ordered by priority
+- [ ] Each task is concrete and testable
+- [ ] Developer confirms tasks

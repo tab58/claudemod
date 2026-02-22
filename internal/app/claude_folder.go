@@ -1,21 +1,17 @@
 package app
 
 import (
-	_ "embed"
+	"embed"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 )
 
-//go:embed refs/SPEC.md
-var refSpecMDString string
-
-//go:embed refs/SPEC_INDEX.md
-var refSpecIndexMDString string
-
-//go:embed refs/BUG_SPEC.md
-var refBugSpecMDString string
+//go:embed refs/*.md
+var refsFS embed.FS
 
 func SetupPluginFolder(wd string) error {
 	// ensure the right folders exist
@@ -150,44 +146,53 @@ func populateClaudeModFolder(wd string) error {
 			return err
 		}
 	}
-	err := os.WriteFile(filepath.Join(refsFilePath, "SPEC.md"), []byte(refSpecMDString), 0644)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(filepath.Join(refsFilePath, "SPEC_INDEX.md"), []byte(refSpecIndexMDString), 0644)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(filepath.Join(refsFilePath, "BUG_SPEC.md"), []byte(refBugSpecMDString), 0644)
-	if err != nil {
-		return err
-	}
 
-	// write the workflow file to the .claudemod/WORKFLOW.md file
-	values := WorkflowValues{
-		BaseFolderPath: ".claudemod",
-		Spec: WorkflowSpecValues{
-			FolderRelPath: "spec",
-			IndexName:     "INDEX.md",
-		},
-		Refs: WorkflowRefsValues{
-			FolderRelPath:       "refs",
-			IndexExampleRefName: "SPEC_INDEX.md",
-			ExampleRefName:      "SPEC.md",
-			BugExampleRefName:   "BUG_SPEC.md",
-		},
-		SessionStateFileName: "SESSION_STATE.json",
-		TaskFileName:         "FIX_PLAN.md",
-		ChangelogFileName:    "CHANGELOG.md",
-		PlanFileName:         "PLAN.md",
-	}
-	workflowFile, err := generateWorkflowFile(values)
+	// copy the embedded refs to the .claudemod/refs folder
+	entries, err := refsFS.ReadDir("refs")
 	if err != nil {
-		return err
+		return fmt.Errorf("read embedded refs: %w", err)
 	}
-	err = os.WriteFile(filepath.Join(getClaudeModFolderPath(wd), "WORKFLOW.md"), []byte(workflowFile), 0644)
-	if err != nil {
-		return err
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		content, err := refsFS.ReadFile(filepath.Join("refs", entry.Name()))
+		if err != nil {
+			return fmt.Errorf("read embedded ref %s: %w", entry.Name(), err)
+		}
+		err = os.WriteFile(filepath.Join(refsFilePath, entry.Name()), content, 0644)
+		if err != nil {
+			return fmt.Errorf("write ref %s: %w", entry.Name(), err)
+		}
 	}
 	return nil
+}
+
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	if err == nil {
+		return true // File or directory exists
+	}
+	// Check if the error is specifically due to the file not existing
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	// For other errors (e.g., permission issues), it's unknown or a different problem
+	return false
+}
+
+func dirExists(path string) bool {
+	// check if path exists and is a directory
+	info, err := os.Stat(path)
+	if err == nil {
+		return info.IsDir()
+	}
+
+	// if the directory does not exist, return false
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+
+	fmt.Printf("error checking if directory exists: %v\n", err)
+	return false
 }

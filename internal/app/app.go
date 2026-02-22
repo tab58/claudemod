@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/tab58/claudemod/internal/app/workflow"
 	"github.com/tab58/claudemod/internal/launcher"
 )
 
@@ -61,90 +63,81 @@ type SessionState struct {
 }
 
 func (a *App) RunWorkflow(ctx context.Context, workflowName string) error {
-	workflow, ok := definedWorkflows[workflowName]
+	wf, ok := definedWorkflows[workflowName]
 	if !ok {
 		return fmt.Errorf("workflow %s not found", workflowName)
 	}
-	firstPhase := workflow.GetFirstPhase()
+	firstPhase := wf.GetFirstPhase()
 	if firstPhase == nil {
 		return fmt.Errorf("invalid workflow %s: has no defined phases", workflowName)
 	}
 
-	// determine starting phase from SESSION_STATE.json
-	currentPhase := firstPhase
-	savedState, err := a.readSessionState()
-	if err == nil {
-		switch savedState.Action {
-		case "restart", "rollback":
-			if p := workflow.GetPhase(savedState.Phase); p != nil {
-				currentPhase = p
-				fmt.Fprintf(os.Stderr, "claudemod: resuming at phase %q\n", currentPhase.Name)
-			}
-		case "advance":
-			if savedState.Phase != "" {
-				if p := workflow.GetNextPhase(savedState.Phase); p != nil {
-					currentPhase = p
-					fmt.Fprintf(os.Stderr, "claudemod: resuming at phase %q\n", currentPhase.Name)
-				}
-			}
-		case "complete":
-			// workflow was finished; start fresh
-		}
-	}
-	// err != nil (file missing, corrupt) → start from first phase
+	// determine starting phase: primary=PHASE_LOG.jsonl, fallback=SESSION_STATE.json
+	currentPhase := a.resolveStartingPhase(wf, firstPhase)
 
 	// run the workflow loop
 	endWorkflow := false
 	for !endWorkflow {
-		// run the current phase
-		if err := a.runPhase(ctx, currentPhase.Name); err != nil {
+		if err := a.runPhase(ctx, wf, currentPhase.Name); err != nil {
 			if errors.Is(err, context.Canceled) {
-				if writeErr := a.writeSessionState(SessionState{
-					Action: "restart",
-					Phase:  currentPhase.Name,
-				}); writeErr != nil {
-					fmt.Fprintf(os.Stderr, "claudemod: warning: failed to save checkpoint at phase %s: %v\n", currentPhase.Name, writeErr)
-				}
+				// append restart entry to phase log for crash recovery
+				_ = a.appendPhaseLog(PhaseLogEntry{
+					Timestamp: time.Now().UTC().Format(time.RFC3339),
+					Phase:     currentPhase.Name,
+					Action:    "restart",
+				})
 				return fmt.Errorf("workflow interrupted at phase %s: %w", currentPhase.Name, err)
 			}
 			return fmt.Errorf("error running phase %s: %w", currentPhase.Name, err)
 		}
 
-		// read the session state
+		// read Claude's transient session state
 		sessionState, err := a.readSessionState()
 		if err != nil {
 			return fmt.Errorf("unable to read session state: %w", err)
 		}
+
+		// promote session state into the append-only phase log
+		logEntry := PhaseLogEntry{
+			Timestamp:         time.Now().UTC().Format(time.RFC3339),
+			Phase:             currentPhase.Name,
+			Action:            sessionState.Action,
+			DiscussionSummary: sessionState.DiscussionSummary,
+			Recommendation:    sessionState.Recommendation,
+			Explanation:       sessionState.Explanation,
+		}
+
 		switch sessionState.Action {
 		case "advance":
-			nextPhase := workflow.GetNextPhase(currentPhase.Name)
+			nextPhase := wf.GetNextPhase(currentPhase.Name)
 			if nextPhase == nil {
-				if err := a.writeSessionState(SessionState{Action: "complete"}); err != nil {
-					return fmt.Errorf("failed to write complete state: %w", err)
+				logEntry.Action = "complete"
+				if err := a.appendPhaseLog(logEntry); err != nil {
+					return fmt.Errorf("failed to append phase log: %w", err)
 				}
 				endWorkflow = true
 			} else {
-				// annotate the state with the completed phase name (immutable copy)
-				annotatedState := SessionState{
-					Action:            sessionState.Action,
-					Phase:             currentPhase.Name,
-					DiscussionSummary: sessionState.DiscussionSummary,
-					Recommendation:    sessionState.Recommendation,
-					Explanation:       sessionState.Explanation,
-				}
-				if err := a.writeSessionState(annotatedState); err != nil {
-					return fmt.Errorf("failed to annotate session state for advance: %w", err)
+				if err := a.appendPhaseLog(logEntry); err != nil {
+					return fmt.Errorf("failed to append phase log: %w", err)
 				}
 				currentPhase = nextPhase
 			}
 		case "complete":
+			if err := a.appendPhaseLog(logEntry); err != nil {
+				return fmt.Errorf("failed to append phase log: %w", err)
+			}
 			endWorkflow = true
-		case "restart":
-			fallthrough
-		case "rollback":
-			rollbackPhase := workflow.GetPhase(sessionState.Phase)
+		case "restart", "rollback":
+			// validate the target phase before writing to log
+			rollbackPhase := wf.GetPhase(sessionState.Phase)
 			if rollbackPhase == nil {
 				return fmt.Errorf("invalid session state phase: %s", sessionState.Phase)
+			}
+			if sessionState.Phase != "" {
+				logEntry.Phase = sessionState.Phase
+			}
+			if err := a.appendPhaseLog(logEntry); err != nil {
+				return fmt.Errorf("failed to append phase log: %w", err)
 			}
 			currentPhase = rollbackPhase
 		default:
@@ -152,6 +145,63 @@ func (a *App) RunWorkflow(ctx context.Context, workflowName string) error {
 		}
 	}
 	return nil
+}
+
+// resolveStartingPhase determines which phase to start from by reading the
+// phase log (primary) or SESSION_STATE.json (fallback for backward compat).
+func (a *App) resolveStartingPhase(wf *workflow.Workflow, firstPhase *workflow.Phase) *workflow.Phase {
+	// Primary: read PHASE_LOG.jsonl
+	entries, err := a.readPhaseLog()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "claudemod: warning: failed to read phase log, falling back to session state: %v\n", err)
+	} else if len(entries) > 0 {
+		last := entries[len(entries)-1]
+		return a.phaseFromLogEntry(wf, last, firstPhase)
+	}
+
+	// Fallback: SESSION_STATE.json (backward compatibility)
+	savedState, err := a.readSessionState()
+	if err == nil {
+		switch savedState.Action {
+		case "restart", "rollback":
+			if p := wf.GetPhase(savedState.Phase); p != nil {
+				fmt.Fprintf(os.Stderr, "claudemod: resuming at phase %q (from session state)\n", p.Name)
+				return p
+			}
+		case "advance":
+			if savedState.Phase != "" {
+				if p := wf.GetNextPhase(savedState.Phase); p != nil {
+					fmt.Fprintf(os.Stderr, "claudemod: resuming at phase %q (from session state)\n", p.Name)
+					return p
+				}
+			}
+		case "complete":
+			// workflow was finished; start fresh
+		}
+	}
+
+	return firstPhase
+}
+
+// phaseFromLogEntry maps a phase log entry to the appropriate starting phase.
+func (a *App) phaseFromLogEntry(wf *workflow.Workflow, entry PhaseLogEntry, firstPhase *workflow.Phase) *workflow.Phase {
+	switch entry.Action {
+	case "restart", "rollback":
+		if p := wf.GetPhase(entry.Phase); p != nil {
+			fmt.Fprintf(os.Stderr, "claudemod: resuming at phase %q\n", p.Name)
+			return p
+		}
+		fmt.Fprintf(os.Stderr, "claudemod: warning: phase log references unknown phase %q, starting from first phase\n", entry.Phase)
+	case "advance":
+		if p := wf.GetNextPhase(entry.Phase); p != nil {
+			fmt.Fprintf(os.Stderr, "claudemod: resuming at phase %q\n", p.Name)
+			return p
+		}
+		fmt.Fprintf(os.Stderr, "claudemod: warning: no phase after %q, starting from first phase\n", entry.Phase)
+	case "complete":
+		// workflow was finished; start fresh
+	}
+	return firstPhase
 }
 
 func (a *App) readSessionState() (*SessionState, error) {
@@ -183,18 +233,46 @@ func (a *App) writeSessionState(state SessionState) error {
 	return nil
 }
 
-func (a *App) runPhase(ctx context.Context, phaseName string) error {
-	// generate the system and agent prompts
-	systemPrompt, err := generateSystemPrompt(SystemPromptValues{
-		PhaseName:   phaseName,
-		ExtraPrompt: "",
-	})
-	if err != nil {
-		return err
-	}
-	agentPrompt := "Begin."
+func (a *App) runPhase(ctx context.Context, wf *workflow.Workflow, phaseName string) error {
+	wfValues := buildWorkflowValues()
 
-	// run the session
+	// read phase log for history context
+	entries, err := a.readPhaseLog()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "claudemod: warning: failed to read phase log: %v\n", err)
+	}
+	phaseLogContent := formatPhaseLog(entries)
+
+	// get rollback targets for the current phase
+	var rollbackTargets []string
+	if phase := wf.GetPhase(phaseName); phase != nil {
+		rollbackTargets = phase.RollbackTargets
+	}
+
+	// render phase instructions from the phase template
+	renderedInstructions, err := renderPhaseInstructions(phaseName, wfValues)
+	if err != nil {
+		return fmt.Errorf("render phase instructions for %s: %w", phaseName, err)
+	}
+
+	// build full system prompt values
+	values := SystemPromptValues{
+		WorkflowValues:  wfValues,
+		PhaseName:       phaseName,
+		RollbackTargets: rollbackTargets,
+		ExtraPrompt:     "",
+		PhaseLogFileName: phaseLogFileName,
+
+		RenderedPhaseInstructions: renderedInstructions,
+		PhaseLogContent:           phaseLogContent,
+	}
+
+	systemPrompt, err := generateSystemPrompt(values)
+	if err != nil {
+		return fmt.Errorf("generate system prompt for %s: %w", phaseName, err)
+	}
+
+	agentPrompt := "Begin."
 	return a.lnch.SpawnInteractiveSession(
 		ctx,
 		launcher.WithSystemPrompt(systemPrompt),

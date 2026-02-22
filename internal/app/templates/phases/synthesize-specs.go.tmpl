@@ -1,0 +1,36 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### synthesize-specs
+
+Complete the following steps:
+
+1. Re-read entire `{{ $baseDir }}/{{ $specFolder }}/` directory.
+2. Compare each spec against the implementation.
+3. Update specs to reflect code as built.
+4. Check for gaps (code not in spec) and phantom specs (spec not in code).
+5. Append dated entry to `{{ $baseDir }}/{{ $changelogName }}` with a summary of the changes to the specs and the implementation.
+6. Copy completed tasks from `{{ $baseDir }}/{{ $taskFileName }}` to `{{ $baseDir }}/{{ $changelogName }}`.
+7. Remove completed tasks from `{{ $baseDir }}/{{ $taskFileName }}`.
+
+Then, complete these steps:
+
+1. Either get the changes from the last source control commit or from the last time the specs were synthesized.
+2. Teach the developer about the changes to the specs and the code implementation. Have a conversation with the developer about the changes to the specs and the implementation, like a senior developer would to a junior developer. Use diagrams and code examples to help explain the changes. If the developer does not understand the changes, ask them to explain why and work with them to understand the changes. Once the developer understands the changes, ask them to confirm they understand the changes.
+3. Ask the developer to confirm they understand the changes. If they do not understand the changes, ask them to explain why and work with them to understand the changes. Once the developer understands the changes, ask them to confirm they understand the changes.
+
+#### Criteria
+
+- [ ] Specs updated to reflect code as built
+- [ ] Gaps and phantom specs identified
+- [ ] {{ $changelogName }} updated
+- [ ] {{ $taskFileName }} cleared
+- [ ] Developer understands the changes to the specs and the implementation
