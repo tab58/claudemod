@@ -19,6 +19,7 @@ type App struct {
 	lnch         launcher.Launcher
 	claudeModDir string
 	watcher      *fsnotify.Watcher
+	layout       ProjectLayout
 }
 
 func NewApp() (*App, error) {
@@ -38,6 +39,13 @@ func NewApp() (*App, error) {
 
 	claudeModDir := getClaudeModFolderPath(wd)
 
+	// discover multi-project layout once at startup
+	layout, err := DiscoverProjects(wd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "claudemod: warning: project discovery failed: %v\n", err)
+		layout = ProjectLayout{ParentDir: wd}
+	}
+
 	// create a new launcher (signal files go inside .claudemod/)
 	lnch, err := launcher.New(wd, claudeModDir)
 	if err != nil {
@@ -49,6 +57,7 @@ func NewApp() (*App, error) {
 		wd:           wd,
 		lnch:         lnch,
 		claudeModDir: claudeModDir,
+		layout:       layout,
 	}, nil
 }
 
@@ -57,11 +66,12 @@ func (a *App) Close() error {
 }
 
 type SessionState struct {
-	Action            string `json:"action"`
-	Phase             string `json:"phase"`
-	DiscussionSummary string `json:"discussion_summary"`
-	Recommendation    string `json:"recommendation"`
-	Explanation       string `json:"explanation"`
+	Action            string   `json:"action"`
+	Phase             string   `json:"phase"`
+	DiscussionSummary string   `json:"discussion_summary"`
+	Recommendation    string   `json:"recommendation"`
+	Explanation       string   `json:"explanation"`
+	AffectedRepos     []string `json:"affected_repos,omitempty"`
 }
 
 func (a *App) RunWorkflow(ctx context.Context, workflowName string) error {
@@ -107,6 +117,7 @@ func (a *App) RunWorkflow(ctx context.Context, workflowName string) error {
 			DiscussionSummary: sessionState.DiscussionSummary,
 			Recommendation:    sessionState.Recommendation,
 			Explanation:       sessionState.Explanation,
+			AffectedRepos:     sessionState.AffectedRepos,
 		}
 
 		switch sessionState.Action {
@@ -235,13 +246,74 @@ func (a *App) writeSessionState(state SessionState) error {
 	return nil
 }
 
+// planningPhases lists phases where all child project dirs should be visible.
+var planningPhases = map[string]bool{
+	"discuss-feature": true,
+	"describe-bug":    true,
+	"spec-plan":       true,
+	"scope-plan":      true,
+	"bootstrap":       true,
+}
+
+// computeAdditionalDirs returns the child project paths that should be passed
+// as --add-dir arguments for the given phase.
+// Planning phases get ALL child dirs; implementation phases get only affected repos
+// (falling back to all if affectedRepos is empty).
+func computeAdditionalDirs(layout ProjectLayout, phaseName string, affectedRepos []string) []string {
+	if !layout.IsMultiProject {
+		return nil
+	}
+
+	// planning phases always see everything
+	if planningPhases[phaseName] {
+		dirs := make([]string, 0, len(layout.ChildProjects))
+		for _, cp := range layout.ChildProjects {
+			dirs = append(dirs, cp.Path)
+		}
+		return dirs
+	}
+
+	// implementation phases: narrow to affected repos if specified
+	if len(affectedRepos) > 0 {
+		affected := make(map[string]bool, len(affectedRepos))
+		for _, name := range affectedRepos {
+			affected[name] = true
+		}
+		dirs := make([]string, 0, len(affectedRepos))
+		for _, cp := range layout.ChildProjects {
+			if affected[cp.Name] {
+				dirs = append(dirs, cp.Path)
+			}
+		}
+		return dirs
+	}
+
+	// fallback: all child dirs
+	dirs := make([]string, 0, len(layout.ChildProjects))
+	for _, cp := range layout.ChildProjects {
+		dirs = append(dirs, cp.Path)
+	}
+	return dirs
+}
+
 func (a *App) runPhase(ctx context.Context, wf *workflow.Workflow, phaseName string) error {
-	wfValues := buildWorkflowValues()
+	layout := a.layout
+
+	// read session state for affected repos
+	var affectedRepos []string
+	if sessionState, stateErr := a.readSessionState(); stateErr == nil {
+		affectedRepos = sessionState.AffectedRepos
+	}
+
+	// compute additional dirs for this phase
+	additionalDirs := computeAdditionalDirs(layout, phaseName, affectedRepos)
+
+	wfValues := buildWorkflowValues(layout)
 
 	// read phase log for history context
-	entries, err := a.readPhaseLog()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "claudemod: warning: failed to read phase log: %v\n", err)
+	entries, logErr := a.readPhaseLog()
+	if logErr != nil {
+		fmt.Fprintf(os.Stderr, "claudemod: warning: failed to read phase log: %v\n", logErr)
 	}
 	phaseLogContent := formatPhaseLog(entries)
 
@@ -274,15 +346,28 @@ func (a *App) runPhase(ctx context.Context, wf *workflow.Workflow, phaseName str
 		return fmt.Errorf("generate system prompt for %s: %w", phaseName, err)
 	}
 
+	// build permissions: parent + child .claudemod/ read access
+	permissions := []string{
+		fmt.Sprintf("Read(%s/*)", a.claudeModDir),
+		fmt.Sprintf("Write(%s/*)", a.claudeModDir),
+		fmt.Sprintf("Edit(%s/*)", a.claudeModDir),
+	}
+	for _, dir := range additionalDirs {
+		relDir, relErr := filepath.Rel(a.wd, dir)
+		if relErr != nil {
+			relDir = dir
+		}
+		permissions = append(permissions,
+			fmt.Sprintf("Read(%s/.claudemod/*)", relDir),
+		)
+	}
+
 	agentPrompt := "Begin."
 	return a.lnch.SpawnInteractiveSession(
 		ctx,
 		launcher.WithSystemPrompt(systemPrompt),
 		launcher.WithAgentPrompt(agentPrompt),
-		launcher.WithPermissions([]string{
-			fmt.Sprintf("Read(%s/*)", a.claudeModDir),
-			fmt.Sprintf("Write(%s/*)", a.claudeModDir),
-			fmt.Sprintf("Edit(%s/*)", a.claudeModDir),
-		}),
+		launcher.WithPermissions(permissions),
+		launcher.WithAdditionalDirs(additionalDirs),
 	)
 }

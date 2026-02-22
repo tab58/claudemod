@@ -41,9 +41,10 @@ func (a *launcherImpl) Close() error {
 }
 
 type sessionOptions struct {
-	systemPrompt string
-	agentPrompt  string
-	permissions  []string
+	systemPrompt   string
+	agentPrompt    string
+	permissions    []string
+	additionalDirs []string
 }
 
 type SessionOption func(*sessionOptions)
@@ -63,6 +64,12 @@ func WithAgentPrompt(agentPrompt string) SessionOption {
 func WithPermissions(permissions []string) SessionOption {
 	return func(o *sessionOptions) {
 		o.permissions = permissions
+	}
+}
+
+func WithAdditionalDirs(dirs []string) SessionOption {
+	return func(o *sessionOptions) {
+		o.additionalDirs = dirs
 	}
 }
 
@@ -97,8 +104,14 @@ func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, options ...S
 	if systemPrompt != "" {
 		claudeArgs = append(claudeArgs, "--append-system-prompt", systemPrompt)
 	}
+	allDirs := make([]string, 0, 1+len(opts.additionalDirs))
 	if a.wd != "" {
-		claudeArgs = append(claudeArgs, "--add-dir", a.wd)
+		allDirs = append(allDirs, a.wd)
+	}
+	allDirs = append(allDirs, opts.additionalDirs...)
+	if len(allDirs) > 0 {
+		claudeArgs = append(claudeArgs, "--add-dir")
+		claudeArgs = append(claudeArgs, allDirs...)
 	}
 	if agentPrompt != "" {
 		claudeArgs = append(claudeArgs, "--", agentPrompt)

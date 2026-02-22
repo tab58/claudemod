@@ -43,6 +43,15 @@ What problem this solves and why it matters.
 Which parts of the codebase this feature touches (modules, packages, layers).
 ```
 
+{{ if .IsMultiProject -}}
+#### Multi-Project Context
+
+This is a multi-project workspace. When exploring the codebase:
+
+1. Read child project specs (listed in the Multi-Project Context section above) for cross-service context.
+2. Consider how the feature may span multiple services and note cross-service dependencies in the Affected Areas section.
+{{ end -}}
+
 #### Criteria
 
 - [ ] Requirements written to {{ $baseDir }}/{{ $planFileName }} using the structure above

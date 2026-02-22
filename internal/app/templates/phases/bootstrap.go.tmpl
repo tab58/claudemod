@@ -51,8 +51,22 @@ After each response, state your confidence level (0-100%). Continue until you re
    - `{{ $baseDir }}/{{ $taskFileName }}`
    - `{{ $baseDir }}/{{ $changelogName }}`
 
+{{ if .IsMultiProject -}}
+#### Multi-Project Bootstrap
+
+This is a multi-project workspace. In addition to the steps above:
+
+1. Create a **system-level architecture overview** in `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` that lists all child services with their roles and responsibilities.
+2. For each child project, document inter-service communication patterns (APIs, events, shared data).
+3. Reference child project specs by path (e.g., `<child-relpath>/.claudemod/spec/INDEX.md`) so readers can navigate to detailed domain specs.
+4. If a child project has no specs yet (`no specs yet` above), suggest running `claudemod run bootstrap` inside that child project directory to generate them.
+{{ end -}}
+
 #### Criteria
 
 - [ ] {{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }} populated
 - [ ] At least one domain spec created and linked to {{ $specIndexName }}
+{{- if .IsMultiProject }}
+- [ ] System-level architecture overview references all child services
+{{- end }}
 - [ ] Developer reviewed and accepted

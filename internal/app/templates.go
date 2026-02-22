@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"io/fs"
+	"path/filepath"
 	"text/template"
 
 	"github.com/tab58/claudemod/internal/app/workflow"
@@ -27,6 +28,16 @@ type WorkflowValues struct {
 	TaskFileName         string
 	ChangelogFileName    string
 	PlanFileName         string
+
+	IsMultiProject bool
+	ChildProjects  []ChildProjectValues
+}
+
+type ChildProjectValues struct {
+	Name        string // display name (directory basename)
+	RelPath     string // relative path from wd (e.g., "services/auth")
+	SpecRelPath string // e.g., "services/auth/.claudemod/spec"
+	HasSpecs    bool
 }
 
 type WorkflowSpecValues struct {
@@ -89,7 +100,29 @@ func renderPhaseInstructions(phaseName string, values WorkflowValues) (string, e
 }
 
 // buildWorkflowValues returns the hardcoded path conventions used across all workflows.
-func buildWorkflowValues() WorkflowValues {
+// When a multi-project layout is provided, it populates child project template values.
+func buildWorkflowValues(layout ProjectLayout) WorkflowValues {
+	var childValues []ChildProjectValues
+	if layout.IsMultiProject {
+		childValues = make([]ChildProjectValues, 0, len(layout.ChildProjects))
+		for _, cp := range layout.ChildProjects {
+			relPath, err := filepath.Rel(layout.ParentDir, cp.Path)
+			if err != nil {
+				relPath = cp.Path
+			}
+			specRelPath, err := filepath.Rel(layout.ParentDir, cp.SpecDir)
+			if err != nil {
+				specRelPath = filepath.Join(relPath, ".claudemod", "spec")
+			}
+			childValues = append(childValues, ChildProjectValues{
+				Name:        cp.Name,
+				RelPath:     relPath,
+				SpecRelPath: specRelPath,
+				HasSpecs:    cp.HasSpecs,
+			})
+		}
+	}
+
 	return WorkflowValues{
 		BaseFolderPath: ".claudemod",
 		Spec: WorkflowSpecValues{
@@ -106,6 +139,8 @@ func buildWorkflowValues() WorkflowValues {
 		TaskFileName:         "FIX_PLAN.md",
 		ChangelogFileName:    "CHANGELOG.md",
 		PlanFileName:         "PLAN.md",
+		IsMultiProject:       layout.IsMultiProject,
+		ChildProjects:        childValues,
 	}
 }
 

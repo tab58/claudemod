@@ -36,6 +36,11 @@ func SetupPluginFolder(wd string) error {
 		return err
 	}
 
+	// discover child projects and grant read permissions for each
+	if err := ensureChildProjectPermissions(wd); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -134,6 +139,46 @@ func ensureClaudeModPermissions(wd string) error {
 		return err
 	}
 
+	return nil
+}
+
+func ensureChildProjectPermissions(wd string) error {
+	layout, err := DiscoverProjects(wd)
+	if err != nil {
+		return fmt.Errorf("discover child projects: %w", err)
+	}
+	if !layout.IsMultiProject {
+		return nil
+	}
+
+	settingsFilePath := filepath.Join(getClaudeFolderPath(wd), "settings.local.json")
+	settingsData, err := os.ReadFile(settingsFilePath)
+	if err != nil {
+		return fmt.Errorf("read settings for child permissions: %w", err)
+	}
+	var settingsJson ClaudeSettings
+	if err := json.Unmarshal(settingsData, &settingsJson); err != nil {
+		return fmt.Errorf("unmarshal settings for child permissions: %w", err)
+	}
+
+	for _, cp := range layout.ChildProjects {
+		relPath, relErr := filepath.Rel(wd, cp.Path)
+		if relErr != nil {
+			relPath = cp.Path
+		}
+		perm := fmt.Sprintf("Read(%s/.claudemod/*)", relPath)
+		if !slices.Contains(settingsJson.Permissions.Allow, perm) {
+			settingsJson.Permissions.Allow = append(settingsJson.Permissions.Allow, perm)
+		}
+	}
+
+	settingsData, err = json.MarshalIndent(settingsJson, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal settings with child permissions: %w", err)
+	}
+	if err := os.WriteFile(settingsFilePath, settingsData, 0644); err != nil {
+		return fmt.Errorf("write settings with child permissions: %w", err)
+	}
 	return nil
 }
 
