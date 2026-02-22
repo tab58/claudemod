@@ -33,8 +33,21 @@ Follow these steps:
 3. Each task should be small enough to implement and test in one iteration.
 4. Ask the developer to confirm the tasks.
 
+{{ if .IsMultiProject -}}
+#### Multi-Project Scoping
+
+This is a multi-project workspace. After identifying tasks:
+
+1. Determine which child repositories are affected by the planned work.
+2. Populate the `"affected_repos"` field in `{{ $baseDir }}/{{ $sessionStateName }}` with the list of affected child project names (directory basenames).
+3. Group tasks by repository in `{{ $baseDir }}/{{ $taskFileName }}` so the developer can see which service each task belongs to.
+{{ end -}}
+
 #### Criteria
 
 - [ ] {{ $baseDir }}/{{ $taskFileName }} populated with tasks ordered by priority
 - [ ] Each task is concrete and testable
+{{- if .IsMultiProject }}
+- [ ] `affected_repos` populated in {{ $baseDir }}/{{ $sessionStateName }}
+{{- end }}
 - [ ] Developer confirms tasks

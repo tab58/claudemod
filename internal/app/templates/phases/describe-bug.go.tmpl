@@ -62,6 +62,15 @@ Which parts of the codebase this bug touches (modules, packages, layers).
 Numbered list of verifiable outcomes for the fix.
 ```
 
+{{ if .IsMultiProject -}}
+#### Multi-Project Context
+
+This is a multi-project workspace. When investigating the bug:
+
+1. Read child project specs (listed in the Multi-Project Context section above) for cross-service context.
+2. Consider whether the bug may originate in a different service or at a service boundary, and note cross-service dependencies in the Affected Areas section.
+{{ end -}}
+
 #### Criteria
 
 - [ ] Bug spec written to {{ $baseDir }}/{{ $planFileName }} using the structure above

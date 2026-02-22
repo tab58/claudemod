@@ -13,12 +13,13 @@ const phaseLogFileName = "PHASE_LOG.jsonl"
 
 // PhaseLogEntry represents a single entry in the append-only phase log.
 type PhaseLogEntry struct {
-	Timestamp         string `json:"timestamp"`
-	Phase             string `json:"phase"`
-	Action            string `json:"action"`
-	DiscussionSummary string `json:"discussion_summary,omitempty"`
-	Recommendation    string `json:"recommendation,omitempty"`
-	Explanation       string `json:"explanation,omitempty"`
+	Timestamp         string   `json:"timestamp"`
+	Phase             string   `json:"phase"`
+	Action            string   `json:"action"`
+	DiscussionSummary string   `json:"discussion_summary,omitempty"`
+	Recommendation    string   `json:"recommendation,omitempty"`
+	Explanation       string   `json:"explanation,omitempty"`
+	AffectedRepos     []string `json:"affected_repos,omitempty"`
 }
 
 // appendPhaseLog appends a single entry to PHASE_LOG.jsonl.

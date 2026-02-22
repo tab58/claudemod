@@ -23,7 +23,7 @@ For each uncompleted task, perform the following steps in order:
    - Rust: trait
 3. **Determine test cases** — Identify test cases for the interface, such as nil-/null-pointer issues, negative indexes, empty inputs, or default values.
 4. **Construct test tooling** — Build any mocks, stubs, test harnesses, or fixtures needed.
-5. **Write tests** — Write tests against the interface for this task.
+5. **Write tests** — Write tests against the interface for this task. Each test should have a comment describing the test case and the expected result above the test code.
 6. **Run the tests** — They MUST fail because the interface is not yet implemented, NOT due to syntax errors, linting errors, or other issues. Fix any non-implementation failures before proceeding.
 
 After completing steps 1–6 for the current task, summarize the test cases and explain the test tooling that was created. Explain why the interface is necessary for the task and the reasoning behind the test cases. Then ask the developer to confirm the tests are correct and complete. If the developer rejects the test cases, work with them to revise until they approve.

@@ -108,6 +108,29 @@ The following phases have been completed or transitioned so far:
 No phases have been completed yet. This is the first phase of the workflow.
 {{- end }}
 
+{{ if .IsMultiProject -}}
+## Multi-Project Context
+
+This is a multi-project workspace. Child projects detected:
+{{ range .ChildProjects }}
+- **{{ .Name }}** ({{ .RelPath }}){{ if .HasSpecs }} -- specs at {{ .SpecRelPath }}/INDEX.md{{ else }} -- no specs yet{{ end }}
+{{- end }}
+
+During "On Start", also read all child project specs listed above.
+
+When writing `{{ $sessionStateName }}`, include an `"affected_repos"` array listing the child project names (directory basenames) that are in scope for the current work. Example:
+
+```
+{
+  "action": "advance",
+  "phase": "{{ .PhaseName }}",
+  "discussion_summary": "...",
+  "recommendation": "...",
+  "affected_repos": ["service-auth", "service-api"]
+}
+```
+{{ end -}}
+
 ## Current Phase Instructions
 
 {{ .RenderedPhaseInstructions }}
