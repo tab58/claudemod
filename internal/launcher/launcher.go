@@ -19,9 +19,10 @@ type Launcher interface {
 }
 
 type launcherImpl struct {
-	watcher *fsnotify.Watcher
-	bridge  *bridge.Bridge
-	wd      string
+	watcher   *fsnotify.Watcher
+	bridge    *bridge.Bridge
+	wd        string
+	signalDir string
 }
 
 func (a *launcherImpl) Close() error {
@@ -74,12 +75,19 @@ func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, options ...S
 		option(&opts)
 	}
 
-	// get the signal file path
+	// get the signal file path (inside signalDir so existing permissions cover it)
 	id := ksuid.New().String()
-	signalFilePath := filepath.Join(a.wd, fmt.Sprintf("signal_%s", id))
+	signalFileName := fmt.Sprintf("signal_%s", id)
+	signalFilePath := filepath.Join(a.signalDir, signalFileName)
+
+	// compute the relative path from wd so Claude writes to the correct location
+	relSignalPath, err := filepath.Rel(a.wd, signalFilePath)
+	if err != nil {
+		return fmt.Errorf("compute relative signal path: %w", err)
+	}
 
 	agentPrompt := opts.agentPrompt
-	systemPrompt := generateSystemPrompt(opts.systemPrompt, id)
+	systemPrompt := generateSystemPrompt(opts.systemPrompt, relSignalPath)
 
 	// build the claude code arguments
 	// NOTE: --add-dir is variadic (<directories...>) so it will consume
@@ -159,12 +167,12 @@ func (a *launcherImpl) SpawnInteractiveSession(ctx context.Context, options ...S
 	}
 }
 
-func New(wd string) (Launcher, error) {
+func New(wd string, signalDir string) (Launcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
-	err = watcher.Add(wd)
+	err = watcher.Add(signalDir)
 	if err != nil {
 		return nil, err
 	}
@@ -176,17 +184,18 @@ func New(wd string) (Launcher, error) {
 	}
 
 	return &launcherImpl{
-		watcher: watcher,
-		bridge:  bridge,
-		wd:      wd,
+		watcher:   watcher,
+		bridge:    bridge,
+		wd:        wd,
+		signalDir: signalDir,
 	}, nil
 }
 
-func generateSystemPrompt(mainPrompt string, id string) string {
+func generateSystemPrompt(mainPrompt string, signalRelPath string) string {
 	fullPromptTemplate := `%s
 
-To exit this session, write the file "signal_%s" with the exact content {"exit_criteria_met": true} as your LAST action.
+To exit this session, write the file "%s" with the exact content {"exit_criteria_met": true} as your LAST action.
 The session will end automatically.
 	`
-	return fmt.Sprintf(fullPromptTemplate, mainPrompt, id)
+	return fmt.Sprintf(fullPromptTemplate, mainPrompt, signalRelPath)
 }

@@ -29,15 +29,17 @@ func NewApp() (*App, error) {
 		os.Exit(1)
 	}
 
-	// create a new launcher
-	lnch, err := launcher.New(wd)
+	// setup the ClaudeMod folder first (launcher watches .claudemod/ for signals)
+	err = SetupPluginFolder(wd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
 		os.Exit(1)
 	}
 
-	// setup the ClaudeMod folder
-	err = SetupPluginFolder(wd)
+	claudeModDir := getClaudeModFolderPath(wd)
+
+	// create a new launcher (signal files go inside .claudemod/)
+	lnch, err := launcher.New(wd, claudeModDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "claudemod: %v\n", err)
 		os.Exit(1)
@@ -46,7 +48,7 @@ func NewApp() (*App, error) {
 	return &App{
 		wd:           wd,
 		lnch:         lnch,
-		claudeModDir: getClaudeModFolderPath(wd),
+		claudeModDir: claudeModDir,
 	}, nil
 }
 
