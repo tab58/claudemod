@@ -73,6 +73,7 @@ func TestGetPhase(t *testing.T) {
 		{"existing phase", Feature, "tdd-red", false},
 		{"first phase", Feature, "discuss-feature", false},
 		{"last phase", Feature, "synthesize-specs", false},
+		{"design-review exists", Feature, "design-review", false},
 		{"nonexistent phase", Feature, "nonexistent", true},
 	}
 
@@ -102,6 +103,8 @@ func TestGetNextPhase(t *testing.T) {
 	}{
 		{"first to second", Feature, "discuss-feature", "spec-plan", false},
 		{"middle", Feature, "scope-plan", "tdd-red", false},
+		{"tdd-refactor to design-review", Feature, "tdd-refactor", "design-review", false},
+		{"design-review to code-review", Feature, "design-review", "code-review", false},
 		{"last phase", Feature, "synthesize-specs", "", true},
 		{"nonexistent", Feature, "nonexistent", "", true},
 	}

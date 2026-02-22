@@ -1,0 +1,76 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### design-review
+
+Evaluate whether the implementation respects the architectural patterns defined in the spec files. Code-review checks *how* code is written; this phase checks *where code lives* and *whether it aligns with the project's structural conventions*.
+
+1. **Extract architectural patterns from specs.** Read `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and each spec file it references. Identify every structural constraint the specs define — module boundaries, dependency direction, domain ownership, layer separation, interface contracts, and extensibility rules. If the specs do not define constraints for a category, skip that category.
+
+2. **Identify changed code.** Read `{{ $baseDir }}/{{ $taskFileName }}` to understand what was implemented. Use `git diff` against the base branch to enumerate all files added or modified during this workflow.
+
+3. **Evaluate each changed file against the following categories.** Only evaluate categories that have spec-defined constraints.
+
+**Module Boundaries**
+
+- New files are placed in the correct module/package as defined by the spec.
+- No file belongs to a module it should not be part of.
+- Module-internal code is not exported or referenced from outside the module boundary.
+
+**Dependency Direction**
+
+- Dependencies flow in the direction the spec prescribes (e.g., outer layers depend on inner layers, not the reverse).
+- No circular dependencies between modules or packages.
+- Infrastructure or framework code does not leak into domain logic.
+
+**Domain Ownership**
+
+- Each piece of domain logic lives in the package or module the spec assigns to that domain.
+- No domain logic is duplicated across multiple owners.
+- Shared utilities are in a designated shared location, not scattered across domains.
+
+**Layer Separation**
+
+- Code respects the layering defined in the spec (e.g., handler/service/repository, controller/usecase/entity).
+- No layer-skipping (e.g., a handler directly calling a repository when a service layer is prescribed).
+- Data transfer between layers uses the types or interfaces the spec defines for that boundary.
+
+**Interface Contracts**
+
+- New public interfaces match the signatures and behaviors the spec prescribes.
+- Existing interfaces are not broken or widened without spec justification.
+- Implementations satisfy the full contract of the interfaces they claim to implement.
+
+**Extensibility**
+
+- New code follows the extension patterns the spec defines (plugin registration, factory pattern, middleware chain, etc.).
+- Adding a new instance of the same kind of component does not require modifying existing code (open/closed principle as scoped by the spec).
+
+4. Present all findings to the developer, organized by severity:
+
+- **Critical** — Violates a hard architectural boundary (e.g., domain logic in infrastructure, reverse dependency).
+- **High** — Breaks a spec-defined convention that will cause maintenance issues (e.g., wrong package, missing interface).
+- **Medium** — Deviates from spec patterns but is functionally correct (e.g., utility in a non-standard location).
+- **Low** — Minor structural preference (e.g., file could be split for clarity).
+
+5. Based on findings, recommend one of the following actions:
+
+- **Rollback to tdd-refactor** — if critical or high severity issues were found that require structural changes. List the specific issues that need to be addressed.
+- **Advance** — if no issues were found, or only medium/low severity issues remain that are acceptable to ship.
+
+6. Ask the developer to confirm the recommended action. The developer may override the recommendation.
+
+**Criteria**
+
+- [ ] Architectural patterns extracted from spec files
+- [ ] All changed files evaluated against applicable categories
+- [ ] Findings presented to developer with severity levels
+- [ ] Developer confirms review outcome (advance or rollback)

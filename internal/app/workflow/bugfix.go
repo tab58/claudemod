@@ -26,8 +26,12 @@ var Bugfix = Workflow{
 			RollbackTargets: []string{"describe-bug", "spec-plan", "scope-plan", "tdd-red", "tdd-green"},
 		},
 		{
-			Name:            "code-review",
+			Name:            "design-review",
 			RollbackTargets: []string{"describe-bug", "spec-plan", "scope-plan", "tdd-red", "tdd-green", "tdd-refactor"},
+		},
+		{
+			Name:            "code-review",
+			RollbackTargets: []string{"describe-bug", "spec-plan", "scope-plan", "tdd-red", "tdd-green", "tdd-refactor", "design-review"},
 		},
 		{Name: "synthesize-specs"},
 	},
