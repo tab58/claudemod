@@ -11,26 +11,59 @@
 {{ $changelogName := .ChangelogFileName -}}
 ### describe-bug
 
-Execute the following steps:
+Before beginning, ask the developer to consider committing any prior changes to the project to source control before continuing.
 
-1. Ask the developer to describe the bug and ask clarifying questions about it. After each response, state your confidence level (0-100%) in understanding what the developer is describing. Continue asking questions until you are at least 90% confident in what the bug is and what might be causing it. Topics for questions may include:
+Follow these steps:
 
-- the environment in which the bug occurs (e.g. browser, mobile app, desktop app, server, etc.)
-- the steps taken to reproduce the bug
-- the expected behavior and the actual behavior
-- any other anomalies that might be related to the bug
-- what the developer might suspect is causing the bug
-- any recent changes that might have introduced the bug
+1. Read the project spec index at `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and skim any specs relevant to the area the developer mentions. Also briefly explore the codebase to understand what already exists (entry points, directory structure, key modules).
+2. Ask the developer to describe the bug and ask clarifying questions. After each response, state your confidence level (0-100%) in understanding the bug. Continue until you reach at least 90% confidence. Topics for questions may include:
+   - The environment in which the bug occurs (e.g. browser, mobile app, desktop app, server, etc.)
+   - Steps to reproduce the bug
+   - Expected behavior vs. actual behavior
+   - Any other anomalies that might be related
+   - What the developer suspects is causing the bug
+   - Any recent changes that might have introduced the bug
+   - Relevant log output or error messages
+3. After reaching >90% confidence, theorize what might be causing the bug. Suggest a plan to test the theory and ask the developer to confirm or reject it. If rejected, return to step 2 and continue asking questions.
+4. Once the theory is confirmed, explore the relevant code areas to verify the theory against the actual implementation. Then write a bug spec to `{{ $baseDir }}/{{ $planFileName }}` using the structure below. Refer to `{{ $baseDir }}/{{ $refsFolder }}/{{ $bugSpecRef }}` as an example of a thorough bug spec.
+5. Present the spec to the developer and ask them to confirm it is correct. If they have corrections, update the spec and re-confirm.
 
-2. After reaching >90% confidence, theorize what might be causing the bug. Suggest a plan to test the theory and ask the developer to tell you if the theory is correct or not. If the theory is incorrect, then go back to step 1 and repeat this process.
+Use this structure for `{{ $baseDir }}/{{ $planFileName }}`:
 
-3. Once we have a correct theory, then do the following:
+```markdown
+## Bug: <short title>
 
-- Compile an issue spec for the bug using `{{ $baseDir }}/{{ $refsFolder }}/{{ $bugSpecRef }}` as a template.
-- Write the spec to `{{ $baseDir }}/{{ $planFileName }}`.
-- Ask the developer to confirm the spec. If they do not understand the spec, ask them to explain why and work with them to understand the spec. Once the developer understands the spec, ask them to confirm they understand the spec.
+### Problem Summary
+What is broken and when it was introduced (if known).
+
+### Behaviors
+
+#### Expected
+What should happen.
+
+#### Actual
+What happens instead.
+
+### Steps to Reproduce
+Numbered steps to trigger the bug.
+
+### Root Cause Analysis
+What is causing the bug and why, with references to specific code.
+
+### Constraints and Requirements for the Fix
+- What the fix must do
+- What the fix must not break
+- Any edge cases to handle
+
+### Affected Areas
+Which parts of the codebase this bug touches (modules, packages, layers).
+
+### Acceptance Criteria
+Numbered list of verifiable outcomes for the fix.
+```
 
 #### Criteria
 
-- [ ] Compiled issue spec written to {{ $baseDir }}/{{ $planFileName }}
-- [ ] Developer confirms understanding
+- [ ] Bug spec written to {{ $baseDir }}/{{ $planFileName }} using the structure above
+- [ ] Root cause is identified with code references
+- [ ] Developer confirms the spec is correct

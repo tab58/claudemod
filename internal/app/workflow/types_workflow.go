@@ -17,9 +17,9 @@ func (w *Workflow) GetFirstPhase() *Phase {
 }
 
 func (w *Workflow) GetPhase(name string) *Phase {
-	for _, phase := range w.Phases {
+	for i, phase := range w.Phases {
 		if phase.Name == name {
-			return &phase
+			return &w.Phases[i]
 		}
 	}
 	return nil
@@ -38,10 +38,8 @@ func (w *Workflow) GetNextPhase(currentPhase string) *Phase {
 }
 
 func (w *Workflow) IsEndPhase(phaseName string) bool {
-	for _, phase := range w.Phases {
-		if phase.Name == phaseName {
-			return true
-		}
+	if len(w.Phases) == 0 {
+		return false
 	}
-	return false
+	return w.Phases[len(w.Phases)-1].Name == phaseName
 }

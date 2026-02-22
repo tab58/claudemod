@@ -5,7 +5,10 @@ var Feature = Workflow{
 		{
 			Name: "discuss-feature",
 		},
-		{Name: "spec-plan"},
+		{
+			Name:            "spec-plan",
+			RollbackTargets: []string{"discuss-feature"},
+		},
 		{
 			Name:            "scope-plan",
 			RollbackTargets: []string{"discuss-feature", "spec-plan"},

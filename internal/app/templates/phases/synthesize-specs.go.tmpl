@@ -11,26 +11,44 @@
 {{ $changelogName := .ChangelogFileName -}}
 ### synthesize-specs
 
-Complete the following steps:
+#### Step 1 — Audit specs against code
 
-1. Re-read entire `{{ $baseDir }}/{{ $specFolder }}/` directory.
-2. Compare each spec against the implementation.
-3. Update specs to reflect code as built.
-4. Check for gaps (code not in spec) and phantom specs (spec not in code).
-5. Append dated entry to `{{ $baseDir }}/{{ $changelogName }}` with a summary of the changes to the specs and the implementation.
-6. Copy completed tasks from `{{ $baseDir }}/{{ $taskFileName }}` to `{{ $baseDir }}/{{ $changelogName }}`.
-7. Remove completed tasks from `{{ $baseDir }}/{{ $taskFileName }}`.
+1. Re-read every file in `{{ $baseDir }}/{{ $specFolder }}/`.
+2. Run `git diff HEAD~1` (or use the latest `{{ $baseDir }}/{{ $changelogName }}` entry as the baseline if this is not the first synthesis) to identify what changed in the implementation since the last phase.
+3. For each domain spec, compare its sections against the actual code. Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as the canonical format reference. Flag:
+   - **Gaps** — code that exists but has no corresponding spec section.
+   - **Phantom specs** — spec sections that describe code that was never built or was removed.
+   - **Drift** — spec details (signatures, field names, data flow) that no longer match the code.
+4. Check whether any new domains were added or existing domains removed. If so, update `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` to match. Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specIndexRef }}` as the format reference for the index.
 
-Then, complete these steps:
+#### Step 2 — Present changes for approval
 
-1. Either get the changes from the last source control commit or from the last time the specs were synthesized.
-2. Teach the developer about the changes to the specs and the code implementation. Have a conversation with the developer about the changes to the specs and the implementation, like a senior developer would to a junior developer. Use diagrams and code examples to help explain the changes. If the developer does not understand the changes, ask them to explain why and work with them to understand the changes. Once the developer understands the changes, ask them to confirm they understand the changes.
-3. Ask the developer to confirm they understand the changes. If they do not understand the changes, ask them to explain why and work with them to understand the changes. Once the developer understands the changes, ask them to confirm they understand the changes.
+5. Present a summary to the developer listing every spec file that will change and what will change in each (added sections, removed sections, updated fields). Use a table or bullet list.
+6. Ask the developer to approve the changes before writing. If the developer requests modifications, incorporate them.
+
+#### Step 3 — Write updated specs and clean up
+
+7. Write the approved updates to the spec files, preserving the canonical format.
+8. Append a dated entry to `{{ $baseDir }}/{{ $changelogName }}` summarizing:
+   - Implementation changes since the last entry.
+   - Spec changes made in this phase (gaps filled, phantoms removed, drift corrected).
+9. Copy completed tasks from `{{ $baseDir }}/{{ $taskFileName }}` into the new `{{ $baseDir }}/{{ $changelogName }}` entry.
+10. Remove completed tasks from `{{ $baseDir }}/{{ $taskFileName }}`.
+11. Archive `{{ $baseDir }}/{{ $planFileName }}` contents into the `{{ $baseDir }}/{{ $changelogName }}` entry, then clear `{{ $baseDir }}/{{ $planFileName }}`.
+
+#### Step 4 — Teach the developer
+
+12. Walk the developer through the key changes using:
+    - An ASCII diagram showing how the changed components connect.
+    - Short code snippets highlighting the most important implementation details.
+    - A brief explanation of *why* each change was made, not just *what* changed.
+13. Ask the developer to confirm they understand the changes. If not, clarify until they do.
 
 #### Criteria
 
-- [ ] Specs updated to reflect code as built
-- [ ] Gaps and phantom specs identified
-- [ ] {{ $changelogName }} updated
-- [ ] {{ $taskFileName }} cleared
-- [ ] Developer understands the changes to the specs and the implementation
+- [ ] Every spec file reflects the code as built (no gaps, phantoms, or drift)
+- [ ] `{{ $specIndexName }}` updated if domains were added or removed
+- [ ] `{{ $changelogName }}` has a dated entry with implementation and spec changes
+- [ ] Completed tasks moved from `{{ $taskFileName }}` to `{{ $changelogName }}`
+- [ ] `{{ $planFileName }}` archived and cleared
+- [ ] Developer confirms understanding of the changes

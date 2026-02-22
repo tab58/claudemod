@@ -11,31 +11,45 @@
 {{ $changelogName := .ChangelogFileName -}}
 ### bootstrap
 
-Explore the codebase and look for the following things:
+#### Step 0: Check for Existing Specs
 
-- code structure
-- architecture
-- languages
-- frameworks
-- design patterns
-- dependencies
-- major domains
+Before exploring, check if `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` already exists. If it does, read the existing specs and present a summary to the developer. Ask whether they want to:
 
-Ask as many questions as you need to be at least 95% sure that you understand:
+- **Update**: Re-explore the codebase and revise specs to reflect the current state of the code.
+- **Replace**: Discard existing specs and start fresh.
 
-- the purpose of the application
-- the application's intended users
-- any key features of this application
-- how it fits into a larger system, if applicable
-- architecture decisions
+If updating, use existing specs as a baseline during exploration — focus on what has changed or diverged. If replacing, proceed as if no specs exist.
 
-1. Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specIndexRef }}` as a template and create an `{{ $specIndexName }}` that summarizes the information gathered in the `{{ $baseDir }}/{{ $specFolder }}` folder.
+#### Step 1: Explore the Codebase
 
-2. Generate specs for each identified domain into that folder with the `{domain}/{subdomain}.MD` filename pattern and use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template to generate these specs and write them to the `{{ $baseDir }}/{{ $specFolder }}` folder and link them in the `{{ $specIndexName }}` file.
+Start with high-signal files and work inward:
 
-3. Also generate the following files:
-- a blank `{{ $baseDir }}/{{ $sessionStateName }}` file
-- a blank `{{ $baseDir }}/{{ $taskFileName }}` file
+1. Read project metadata: README, CLAUDE.md, go.mod/package.json, Makefile/Taskfile, and any docs/ folder.
+2. Map the directory structure and identify entry points (main files, index files).
+3. Identify languages, frameworks, and major dependencies.
+4. Trace the primary data flow from entry point through core logic.
+5. Identify major domains, design patterns, and external integrations (APIs, databases, services).
+
+#### Step 2: Clarify with the Developer
+
+Ask the developer clarifying questions about anything you could not confidently determine from code alone. Focus on:
+
+- The purpose of the application and its intended users
+- How it fits into a larger system, if applicable
+- Key architecture decisions and trade-offs
+- Build, test, and deployment workflow
+
+After each response, state your confidence level (0-100%). Continue until you reach at least 85% confidence, then present a brief summary of your findings for the developer to confirm or correct.
+
+#### Step 3: Generate Specs
+
+1. Read `{{ $baseDir }}/{{ $refsFolder }}/{{ $specIndexRef }}` as a template. Create `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` summarizing the project overview, tech stack, data flow, inter-domain dependencies, and linking to all domain specs.
+2. For each identified domain, generate a spec using `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as a template. Write each spec to `{{ $baseDir }}/{{ $specFolder }}/{domain}/{subdomain}.md` and link it in `{{ $specIndexName }}`.
+3. Create the following blank files:
+   - `{{ $baseDir }}/{{ $sessionStateName }}`
+   - `{{ $baseDir }}/{{ $planFileName }}`
+   - `{{ $baseDir }}/{{ $taskFileName }}`
+   - `{{ $baseDir }}/{{ $changelogName }}`
 
 #### Criteria
 

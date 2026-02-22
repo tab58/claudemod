@@ -11,27 +11,35 @@
 {{ $changelogName := .ChangelogFileName -}}
 ### tdd-red
 
-Write test cases for all the uncompleted tasks in the `{{ $baseDir }}/{{ $taskFileName }}` file.
-For each task:
+Read the `{{ $baseDir }}/{{ $taskFileName }}` file and identify every uncompleted task (lines starting with `- [ ]`). You MUST process each uncompleted task one at a time, completing all of the steps below for one task before moving on to the next. Do NOT skip any tasks.
 
-1. Define the interface/contract using language-appropriate constructs. Examples include:
+For each uncompleted task, perform the following steps in order:
 
-- Go: interface
-- TypeScript: interface/type
-- Python: Protocol/ABC,
-- Rust: trait
+1. **State the task** — Print which task you are currently working on (e.g. "Task 2: <task description>") so the developer can track progress.
+2. **Define the interface/contract** — Use language-appropriate constructs. Examples include:
+   - Go: interface
+   - TypeScript: interface/type
+   - Python: Protocol/ABC
+   - Rust: trait
+3. **Determine test cases** — Identify test cases for the interface, such as nil-/null-pointer issues, negative indexes, empty inputs, or default values.
+4. **Construct test tooling** — Build any mocks, stubs, test harnesses, or fixtures needed.
+5. **Write tests** — Write tests against the interface for this task.
+6. **Run the tests** — They MUST fail because the interface is not yet implemented, NOT due to syntax errors, linting errors, or other issues. Fix any non-implementation failures before proceeding.
 
-2. Determine the test cases for the interfaces, such as nil-/null- pointer issues, negative indexes, or default values.
-3. Construct tooling for the tests, such as mocks, stubs, or test harnesses and fixtures.
-4. Write tests against the interface
-5. Run the tests — they MUST fail due to the interface not being implemented, not due to other errors such as syntax or linting
+After completing steps 1–6 for the current task, summarize the test cases and explain the test tooling that was created. Explain why the interface is necessary for the task and the reasoning behind the test cases. Then ask the developer to confirm the tests are correct and complete. If the developer rejects the test cases, work with them to revise until they approve.
 
-Once the tests are designed and written, summarize the test cases and explain the test tooling that was created. Then ask the developer to confirm the tests are correct and complete. Be sure to explain why the interface is necessary for the task and, if applicable, the reasoning behind the test cases in detail and why they are important. If the developer rejects the test cases, ask them to explain why and work with them to design new test cases that are acceptable to them. Once the developer confirms the test cases, make sure they fail due to the interface not being implemented, not due to other errors such as syntax or linting.
+Once the developer confirms, move on to the next uncompleted task and repeat steps 1–6. Continue until every uncompleted task has been processed.
+
+After all tasks have been processed, print a final summary listing each task and its test status.
 
 #### Criteria
 
+For EACH uncompleted task:
 - [ ] Interface/contract defined
 - [ ] Test tooling constructed
 - [ ] Tests written
 - [ ] Developer confirms tests
 - [ ] Tests run and FAIL (red)
+
+All uncompleted tasks processed:
+- [ ] Every uncompleted task in `{{ $taskFileName }}` has tests written and confirmed

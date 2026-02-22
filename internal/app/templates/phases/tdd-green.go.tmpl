@@ -11,21 +11,30 @@
 {{ $changelogName := .ChangelogFileName -}}
 ### tdd-green
 
-Execute the following steps in a loop until all tests pass:
+Read the `{{ $baseDir }}/{{ $taskFileName }}` file and identify every uncompleted task (lines starting with `- [ ]`). You MUST process each uncompleted task one at a time, completing all of the steps below for one task before moving on to the next. Do NOT skip any tasks.
 
-1. Write the minimal implementation to make tests pass. Follow these guidelines during implementation:
+For each uncompleted task, perform the following steps in order:
 
-- Run the tests after every implementation change
-- Do not add functionality beyond what tests require.
-- If new data structures or modules are written, be sure to explain why the interface is necessary for the task and, if applicable, the reasoning behind the design decision in concise detail and why it was important. If the developer rejects the implementation, ask them to explain why and work with them to design a new or revised implementation that is acceptable to them.
+1. **State the task** — Print which task you are currently working on (e.g. "Task 2: <task description>") so the developer can track progress.
+2. **Write the minimal implementation** — Write only enough code to make the task's tests pass. Do not add functionality beyond what the tests require.
+3. **Run the tests** — Run the tests after every implementation change. All tests for this task MUST pass. If any test fails, fix the implementation and re-run until green.
+4. **Explain design decisions** — If new data structures, modules, or interfaces were introduced, briefly explain why they are necessary and the reasoning behind the design.
+5. **Ask the developer to confirm** — Present the implementation and ask the developer to confirm it is correct. If the developer rejects the implementation, ask them to explain why and work with them to revise it until they approve.
+6. **Mark the task complete** — After confirmation, tick the task checkbox as completed in `{{ $baseDir }}/{{ $taskFileName }}`.
 
-2. Ask the developer to confirm the implementation. After confirmation, tick the task checkboxes as completed in `{{ $baseDir }}/{{ $taskFileName }}`.
-3. Check that the implementation fulfills the task requirements.
+Once the developer confirms, move on to the next uncompleted task and repeat steps 1–6. Continue until every uncompleted task has been processed.
 
-After completing the loop, check if there are any tasks not completed in `{{ $baseDir }}/{{ $taskFileName }}`. If there are, suggest a rollback to the tdd-red phase to write tests for the missing functionality. Measure the code coverage of the tests and ensure it is at least 80% otherwise suggest a rollback to the tdd-red phase to write more tests.
+After all tasks have been processed, run the full test suite and measure code coverage. Print a final summary listing each task and its test status. If any tasks remain uncompleted in `{{ $baseDir }}/{{ $taskFileName }}`, or if code coverage is below 80%, suggest a rollback to the tdd-red phase.
 
 #### Criteria
 
-- [ ] Implementation written
-- [ ] All tests PASS (green)
+For EACH uncompleted task:
+- [ ] Minimal implementation written
+- [ ] Tests PASS (green)
 - [ ] Developer confirms implementation
+- [ ] Task checkbox marked complete
+
+All uncompleted tasks processed:
+- [ ] Every uncompleted task in `{{ $taskFileName }}` has a passing implementation
+- [ ] Full test suite passes
+- [ ] Code coverage is at least 80%

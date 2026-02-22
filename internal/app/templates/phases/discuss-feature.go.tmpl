@@ -15,12 +15,36 @@ Before beginning, ask the developer to consider committing any prior changes to 
 
 Follow these steps:
 
-1. Read the project spec.
-2. Ask the developer clarifying questions about their request. After each response, state your confidence level (0-100%) in understanding what the developer wants to build. Continue asking questions until you reach at least 85% confidence.
-3. After reaching >85% confidence, ask the developer to continue refining or proceed with sensible defaults.
-4. After confirmation, summarize the understood requirements and write them to `{{ $baseDir }}/{{ $planFileName }}`.
+1. Read the project spec index at `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and skim any domain specs relevant to the developer's request. Also briefly explore the codebase to understand what already exists (entry points, directory structure, key modules).
+2. Ask the developer clarifying questions about their request. Focus on:
+   - What problem this feature solves and who it's for
+   - Expected behavior and edge cases
+   - How it interacts with existing functionality
+   - Any constraints (performance, compatibility, dependencies)
+
+   After each response, state your confidence level (0-100%) in understanding what the developer wants to build. Continue asking questions until you reach at least 85% confidence.
+3. After reaching >85% confidence, present a brief summary of your understanding — including any gaps you filled with assumptions. Ask the developer to confirm, correct, or continue refining.
+4. After confirmation, write the agreed requirements to `{{ $baseDir }}/{{ $planFileName }}` using this structure:
+
+```markdown
+## Feature: <name>
+
+### Problem
+What problem this solves and why it matters.
+
+### Requirements
+- Requirement 1
+- Requirement 2
+
+### Assumptions
+- Any gaps filled with sensible defaults (noted so spec-plan can verify).
+
+### Affected Areas
+Which parts of the codebase this feature touches (modules, packages, layers).
+```
 
 #### Criteria
 
-- [ ] Summary of requirements written to {{ $baseDir }}/{{ $planFileName }}
-- [ ] Developer confirms understanding
+- [ ] Requirements written to {{ $baseDir }}/{{ $planFileName }} using the structure above
+- [ ] Assumptions are explicitly called out
+- [ ] Developer confirms the plan
