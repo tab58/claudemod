@@ -13,6 +13,7 @@ func TestRollbackTargetsReferenceEarlierPhases(t *testing.T) {
 		{"Feature", Feature},
 		{"Bugfix", Bugfix},
 		{"Bootstrap", Bootstrap},
+		{"Explain", Explain},
 	}
 
 	for _, wf := range workflows {
@@ -48,6 +49,7 @@ func TestWorkflowPhaseNamesAreUnique(t *testing.T) {
 		{"Feature", Feature},
 		{"Bugfix", Bugfix},
 		{"Bootstrap", Bootstrap},
+		{"Explain", Explain},
 	}
 
 	for _, wf := range workflows {
@@ -139,6 +141,7 @@ func TestGetFirstPhase(t *testing.T) {
 		{"feature", Feature, "discuss-feature", false},
 		{"bugfix", Bugfix, "describe-bug", false},
 		{"bootstrap", Bootstrap, "bootstrap", false},
+		{"explain", Explain, "ask-question", false},
 		{"empty", Workflow{}, "", true},
 	}
 
@@ -180,6 +183,7 @@ func TestRollbackTargetsAreOrdered(t *testing.T) {
 		{"Feature", Feature},
 		{"Bugfix", Bugfix},
 		{"Bootstrap", Bootstrap},
+		{"Explain", Explain},
 	}
 
 	for _, wf := range workflows {
@@ -219,6 +223,8 @@ func TestIsEndPhase(t *testing.T) {
 		{"empty workflow", Workflow{}, "anything", false},
 		{"bugfix last phase", Bugfix, "synthesize-specs", true},
 		{"bootstrap single phase", Bootstrap, "bootstrap", true},
+		{"explain last phase", Explain, "update-specs", true},
+		{"explain first phase is not end", Explain, "ask-question", false},
 	}
 
 	for _, tt := range tests {

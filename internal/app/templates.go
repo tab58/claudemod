@@ -14,10 +14,13 @@ import (
 //go:embed templates/*.go.tmpl templates/phases/*.go.tmpl
 var templatesFS embed.FS
 
+// definedWorkflows is a map of workflow names to their corresponding workflow struct.
+// These are callable from the command line using "claudemod run <workflow-name>".
 var definedWorkflows = map[string]*workflow.Workflow{
 	"bootstrap": &workflow.Bootstrap,
 	"feature":   &workflow.Feature,
 	"bugfix":    &workflow.Bugfix,
+	"explain":   &workflow.Explain,
 }
 
 type WorkflowValues struct {

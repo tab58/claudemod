@@ -1,0 +1,88 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### update-specs
+
+Persist the knowledge discovered during the deep-dive by correcting specs and recording what was learned. This phase ensures that future developers (and future Claude sessions) benefit from today's investigation.
+
+#### Step 1 — Review Discrepancies
+
+1. Read the findings and spec discrepancies table from `{{ $baseDir }}/{{ $planFileName }}`.
+2. Re-read each spec file referenced in the discrepancies table. Use `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` as the canonical format reference.
+3. For each discrepancy, verify it is still accurate by checking the relevant code one more time. Remove any false positives.
+4. Check whether the investigation revealed new domains or removed existing ones. If so, plan an update to `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` using `{{ $baseDir }}/{{ $refsFolder }}/{{ $specIndexRef }}` as the format reference.
+
+#### Step 2 — Present Changes for Approval
+
+5. Present the proposed spec changes to the developer, organized by spec file:
+
+   For each file, show:
+   - What the spec currently says (quote the relevant section)
+   - What the code actually does
+   - The proposed correction
+   - The discrepancy type (Gap, Phantom, Drift, Wrong Assumption)
+
+6. Ask the developer to approve, modify, or reject each change. Some discrepancies may be intentional (e.g., aspirational specs describing planned behavior) — the developer decides.
+
+#### Step 3 — Write Approved Changes
+
+7. Write approved corrections to the spec files, preserving the canonical format.
+8. If new sections need to be added (Gaps), place them in the appropriate spec file following the existing structure. If no appropriate spec file exists, create one following the template at `{{ $baseDir }}/{{ $refsFolder }}/{{ $specRef }}` and link it in `{{ $specIndexName }}`.
+9. If sections need to be removed (Phantoms), remove them cleanly. Do not leave stub sections or "removed" comments.
+
+#### Step 4 — Record Knowledge
+
+10. Append a dated entry to `{{ $baseDir }}/{{ $changelogName }}` summarizing:
+    - The question that was investigated
+    - Key findings (2-5 bullet points of what was learned)
+    - Spec corrections made (list each file and what changed)
+    - Any remaining open questions or areas that need further investigation
+
+11. Archive the investigation from `{{ $baseDir }}/{{ $planFileName }}` into the `{{ $baseDir }}/{{ $changelogName }}` entry, then clear `{{ $baseDir }}/{{ $planFileName }}`.
+
+Use this structure for the changelog entry:
+
+```markdown
+## Explain: <topic> — <date>
+
+### Question
+What the developer asked.
+
+### Key Findings
+- Finding 1 (with file:line references)
+- Finding 2
+- Finding 3
+
+### Spec Corrections
+- `spec/domain/file.md`: Corrected data flow description to reflect middleware pipeline (was: direct call)
+- `spec/domain/file2.md`: Added missing section on plugin self-registration via init()
+
+### Open Questions
+- Any areas that still need investigation (if none, omit this section)
+```
+
+{{ if .IsMultiProject -}}
+#### Multi-Project Context
+
+When updating specs for a multi-project workspace:
+
+1. Update child project specs if discrepancies were found in cross-service documentation.
+2. Update the system-level architecture overview in `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` if inter-service communication patterns were found to be inaccurate.
+{{ end -}}
+
+#### Criteria
+
+- [ ] All discrepancies verified against code
+- [ ] Proposed changes presented to developer with before/after
+- [ ] Approved corrections written to spec files
+- [ ] `{{ $specIndexName }}` updated if domains were added or removed
+- [ ] `{{ $changelogName }}` has a dated entry with question, findings, and corrections
+- [ ] `{{ $planFileName }}` archived and cleared
