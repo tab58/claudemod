@@ -29,10 +29,10 @@ claudemod run bootstrap
 
 ## Commands
 
-| Command                    | Description                                                           |
-| -------------------------- | --------------------------------------------------------------------- |
-| `claudemod init`           | Scaffold `.claudemod/` and `.claude/` directories in your project     |
-| `claudemod run <workflow>` | Run a workflow (see below)                                            |
+| Command                    | Description                                                       |
+| -------------------------- | ----------------------------------------------------------------- |
+| `claudemod init`           | Scaffold `.claudemod/` and `.claude/` directories in your project |
+| `claudemod run <workflow>` | Run a workflow (see below)                                        |
 
 ## Workflows
 
@@ -111,7 +111,6 @@ When you run a workflow, claudemod spawns a Claude Code session for each phase w
 ```bash
 task build          # Build to bin/claudemod
 task test           # go test -cover ./...
-task test-race      # go test -race ./...
 task lint           # go vet + staticcheck
 task install        # Build + copy to ~/.local/bin/claudemod
 task clean          # Remove build artifacts
