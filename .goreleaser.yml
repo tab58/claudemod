@@ -43,3 +43,24 @@ release:
     owner: tab58
     name: claudemod
   prerelease: auto
+
+brews:
+  - name: claudemod
+    repository:
+      owner: tab58
+      name: homebrew-claudemod
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    commit_author:
+      name: goreleaser
+      email: goreleaser@users.noreply.github.com
+    commit_msg_template: "brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    homepage: "https://github.com/tab58/claudemod"
+    description: "Workflow orchestrator for Claude Code that drives incremental feature delivery through structured, multi-phase development workflows."
+    license: "MIT"
+    skip_upload: auto
+    install: |
+      bin.install "claudemod"
+    test: |
+      system "#{bin}/claudemod", "--version"

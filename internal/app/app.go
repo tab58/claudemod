@@ -317,10 +317,18 @@ func (a *App) runPhase(ctx context.Context, wf *workflow.Workflow, phaseName str
 	}
 	phaseLogContent := formatPhaseLog(entries)
 
-	// get rollback targets for the current phase
+	// get rollback targets and description for the current phase
 	var rollbackTargets []string
+	var phaseDescription string
 	if phase := wf.GetPhase(phaseName); phase != nil {
 		rollbackTargets = phase.RollbackTargets
+		phaseDescription = phase.Description
+	}
+
+	// print phase banner to the user
+	fmt.Fprintf(os.Stderr, "\n━━━ Phase: %s ━━━\n", phaseName)
+	if phaseDescription != "" {
+		fmt.Fprintf(os.Stderr, "%s\n\n", phaseDescription)
 	}
 
 	// render phase instructions from the phase template
@@ -331,10 +339,11 @@ func (a *App) runPhase(ctx context.Context, wf *workflow.Workflow, phaseName str
 
 	// build full system prompt values
 	values := SystemPromptValues{
-		WorkflowValues:  wfValues,
-		PhaseName:       phaseName,
-		RollbackTargets: rollbackTargets,
-		ExtraPrompt:     "",
+		WorkflowValues:   wfValues,
+		PhaseName:        phaseName,
+		PhaseDescription: phaseDescription,
+		RollbackTargets:  rollbackTargets,
+		ExtraPrompt:      "",
 		PhaseLogFileName: phaseLogFileName,
 
 		RenderedPhaseInstructions: renderedInstructions,

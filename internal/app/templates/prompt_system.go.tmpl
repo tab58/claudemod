@@ -8,7 +8,9 @@
 {{ $changelogName := .ChangelogFileName -}}
 {{ $phaseLogName := .PhaseLogFileName -}}
 You are executing the ClaudeMod '{{ .PhaseName }}' phase.
+{{ if .PhaseDescription }}Phase goal: {{ .PhaseDescription }}{{ end }}
 {{ .ExtraPrompt }}
+**Important**: At the very start of this session, before doing anything else, greet the developer with a brief message stating what phase this is and what it will accomplish. Keep it to 1-2 sentences.
 ## Session Protocol
 
 ### On Start

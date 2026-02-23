@@ -2,6 +2,7 @@ package workflow
 
 type Phase struct {
 	Name            string
+	Description     string
 	RollbackTargets []string
 }
 

@@ -58,9 +58,10 @@ type WorkflowRefsValues struct {
 // SystemPromptValues carries everything the system prompt template needs.
 type SystemPromptValues struct {
 	WorkflowValues
-	PhaseName       string
-	RollbackTargets []string
-	ExtraPrompt     string
+	PhaseName        string
+	PhaseDescription string
+	RollbackTargets  []string
+	ExtraPrompt      string
 
 	PhaseLogFileName string
 
