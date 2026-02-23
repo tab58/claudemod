@@ -74,6 +74,22 @@ Same structured lifecycle as `feature`, but starts with bug investigation instea
 describe-bug → spec-plan → scope-plan → tdd-red → tdd-green → tdd-refactor → design-review → code-review → synthesize-specs
 ```
 
+### `task` — Structured work without TDD
+
+For non-TDD work like refactoring, adding documentation, updating configurations, or other tasks that still benefit from structured phases but don't need the full red/green/refactor cycle. Claude discusses the task, plans the work, executes it while verifying no regressions, reviews the changes, and updates specs.
+
+```
+discuss-task → task-plan → execute-task → code-review → synthesize-specs
+```
+
+### `backlog` — Generate a prioritized backlog
+
+Discuss a feature, draft a technical spec, break it into tasks, then transform those tasks into prioritized user stories with story points, dependencies, and acceptance criteria. Produces a `STORIES.md` backlog ready for sprint planning.
+
+```
+discuss-feature → spec-plan → scope-plan → generate-stories
+```
+
 ## How It Works
 
 When you run a workflow, claudemod spawns a Claude Code session for each phase with a system prompt tailored to that phase's goals. You interact with Claude normally — it just has focused instructions for what to accomplish.
@@ -94,8 +110,9 @@ When you run a workflow, claudemod spawns a Claude Code session for each phase w
 .claudemod/
   SESSION_STATE.json       Current phase and transition action
   PHASE_LOG.jsonl          Append-only history of phase transitions
-  PLAN.md                  Requirements (feature) or bug spec (bugfix) or investigation plan (explain)
+  PLAN.md                  Requirements (feature/task) or bug spec (bugfix) or investigation plan (explain)
   FIX_PLAN.md              Prioritized task list for implementation phases
+  STORIES.md               Prioritized user stories with points and dependencies (backlog)
   CHANGELOG.md             Dated entries summarizing completed work and spec changes
   spec/                    Architecture and domain specs
     INDEX.md               Project overview, tech stack, domain map

@@ -6,6 +6,7 @@
 {{ $planFileName := .PlanFileName -}}
 {{ $taskFileName := .TaskFileName -}}
 {{ $changelogName := .ChangelogFileName -}}
+{{ $storiesFileName := .StoriesFileName -}}
 {{ $phaseLogName := .PhaseLogFileName -}}
 You are executing the ClaudeMod '{{ .PhaseName }}' phase.
 {{ if .PhaseDescription }}Phase goal: {{ .PhaseDescription }}{{ end }}
@@ -20,8 +21,9 @@ You are executing the ClaudeMod '{{ .PhaseName }}' phase.
 3. Read `{{ $baseDir }}/{{ $taskFileName }}`
 4. Read `{{ $baseDir }}/{{ $planFileName }}`
 5. Read `{{ $baseDir }}/{{ $changelogName }}`
-6. Read `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and other specs in the `{{ $baseDir }}/{{ $specFolder }}` folder
-7. Drift detection: compare spec against code, flag discrepancies
+6. Read `{{ $baseDir }}/{{ $storiesFileName }}`
+7. Read `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and other specs in the `{{ $baseDir }}/{{ $specFolder }}` folder
+8. Drift detection: compare spec against code, flag discrepancies
 
 In reading {{ $sessionStateName }}, determine the action to take based on the action field.
 If the action is "advance", then this phase should be started fresh.

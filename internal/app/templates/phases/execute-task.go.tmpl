@@ -1,0 +1,36 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### execute-task
+
+Read the `{{ $baseDir }}/{{ $taskFileName }}` file and identify every uncompleted task (lines starting with `- [ ]`). You MUST process each uncompleted task one at a time, completing all of the steps below for one task before moving on to the next. Do NOT skip any tasks.
+
+For each uncompleted task, perform the following steps in order:
+
+1. **State the task** — Print which task you are currently working on (e.g. "Task 2: <task description>") so the developer can track progress.
+2. **Do the work** — Implement the changes described by the task. Follow existing code conventions and patterns.
+3. **Run existing tests** — Run the project's test suite after every change to verify no regressions were introduced. If any test fails, fix the issue before proceeding.
+4. **Mark the task complete** — After the work is done and tests pass, tick the task checkbox as completed in `{{ $baseDir }}/{{ $taskFileName }}`.
+
+Move on to the next uncompleted task and repeat steps 1–4. Continue until every uncompleted task has been processed.
+
+After all tasks have been processed, run the full test suite. Print a final summary listing each task and its status. If any tests fail, suggest a rollback to the task-plan phase.
+
+#### Criteria
+
+For EACH uncompleted task:
+- [ ] Work completed as described
+- [ ] Existing tests pass (no regressions)
+- [ ] Task checkbox marked complete
+
+All uncompleted tasks processed:
+- [ ] Every uncompleted task in `{{ $taskFileName }}` has been completed
+- [ ] Full test suite passes

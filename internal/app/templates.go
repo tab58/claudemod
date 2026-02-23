@@ -21,6 +21,8 @@ var definedWorkflows = map[string]*workflow.Workflow{
 	"feature":   &workflow.Feature,
 	"bugfix":    &workflow.Bugfix,
 	"explain":   &workflow.Explain,
+	"backlog":   &workflow.Backlog,
+	"task":      &workflow.Task,
 }
 
 type WorkflowValues struct {
@@ -31,6 +33,7 @@ type WorkflowValues struct {
 	TaskFileName         string
 	ChangelogFileName    string
 	PlanFileName         string
+	StoriesFileName      string
 
 	IsMultiProject bool
 	ChildProjects  []ChildProjectValues
@@ -143,6 +146,7 @@ func buildWorkflowValues(layout ProjectLayout) WorkflowValues {
 		TaskFileName:         "FIX_PLAN.md",
 		ChangelogFileName:    "CHANGELOG.md",
 		PlanFileName:         "PLAN.md",
+		StoriesFileName:      "STORIES.md",
 		IsMultiProject:       layout.IsMultiProject,
 		ChildProjects:        childValues,
 	}

@@ -1,0 +1,55 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### task-plan
+
+Follow these steps:
+
+1. Read `{{ $baseDir }}/{{ $planFileName }}` to understand the agreed requirements.
+2. Read the project spec index at `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and skim any relevant specs for additional context.
+3. Break the agreed work into concrete, implementable tasks.
+4. Write tasks to `{{ $baseDir }}/{{ $taskFileName }}` using the format below:
+
+```markdown
+## Tasks
+
+### High Priority
+- [ ] Task description
+- [ ] Task description
+
+### Medium Priority
+- [ ] Task description
+
+### Low Priority
+- [ ] Task description
+```
+
+5. Each task should be small enough to complete in one pass.
+6. Ask the developer to confirm the tasks.
+
+{{ if .IsMultiProject -}}
+#### Multi-Project Scoping
+
+This is a multi-project workspace. After identifying tasks:
+
+1. Determine which child repositories are affected by the planned work.
+2. Populate the `"affected_repos"` field in `{{ $baseDir }}/{{ $sessionStateName }}` with the list of affected child project names (directory basenames).
+3. Group tasks by repository in `{{ $baseDir }}/{{ $taskFileName }}` so the developer can see which service each task belongs to.
+{{ end -}}
+
+#### Criteria
+
+- [ ] {{ $baseDir }}/{{ $taskFileName }} populated with tasks ordered by priority
+- [ ] Each task is concrete and completable in one pass
+{{- if .IsMultiProject }}
+- [ ] `affected_repos` populated in {{ $baseDir }}/{{ $sessionStateName }}
+{{- end }}
+- [ ] Developer confirms tasks

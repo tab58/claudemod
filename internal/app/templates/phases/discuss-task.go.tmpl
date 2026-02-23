@@ -1,0 +1,59 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $specIndexRef := .Refs.IndexExampleRefName -}}
+{{ $specRef := .Refs.ExampleRefName -}}
+{{ $bugSpecRef := .Refs.BugExampleRefName -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+### discuss-task
+
+Before beginning, ask the developer to consider committing any prior changes to the project to source control before continuing.
+
+Follow these steps:
+
+1. Read the project spec index at `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` and skim any domain specs relevant to the developer's request. Also briefly explore the codebase to understand what already exists (entry points, directory structure, key modules).
+2. Ask the developer clarifying questions about their request. Focus on:
+   - What needs to change and why
+   - What the expected outcome looks like
+   - How it interacts with existing functionality
+   - Any constraints (performance, compatibility, dependencies)
+
+   After each response, state your confidence level (0-100%) in understanding what the developer wants done. Continue asking questions until you reach at least 85% confidence.
+3. After reaching >85% confidence, present a brief summary of your understanding — including any gaps you filled with assumptions. Ask the developer to confirm, correct, or continue refining.
+4. After confirmation, write the agreed requirements to `{{ $baseDir }}/{{ $planFileName }}` using this structure:
+
+```markdown
+## Task: <name>
+
+### Problem
+What needs to change and why it matters.
+
+### Requirements
+- Requirement 1
+- Requirement 2
+
+### Assumptions
+- Any gaps filled with sensible defaults (noted so task-plan can verify).
+
+### Affected Areas
+Which parts of the codebase this task touches (modules, packages, layers).
+```
+
+{{ if .IsMultiProject -}}
+#### Multi-Project Context
+
+This is a multi-project workspace. When exploring the codebase:
+
+1. Read child project specs (listed in the Multi-Project Context section above) for cross-service context.
+2. Consider how the task may span multiple services and note cross-service dependencies in the Affected Areas section.
+{{ end -}}
+
+#### Criteria
+
+- [ ] Requirements written to {{ $baseDir }}/{{ $planFileName }} using the structure above
+- [ ] Assumptions are explicitly called out
+- [ ] Developer confirms the plan

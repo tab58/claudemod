@@ -1,0 +1,64 @@
+{{ $baseDir := .BaseFolderPath -}}
+{{ $specFolder := .Spec.FolderRelPath -}}
+{{ $specIndexName := .Spec.IndexName -}}
+{{ $refsFolder := .Refs.FolderRelPath -}}
+{{ $sessionStateName := .SessionStateFileName -}}
+{{ $planFileName := .PlanFileName -}}
+{{ $taskFileName := .TaskFileName -}}
+{{ $changelogName := .ChangelogFileName -}}
+{{ $storiesFileName := .StoriesFileName -}}
+### generate-stories
+
+Follow these steps:
+
+1. Read `{{ $baseDir }}/{{ $planFileName }}` for full technical context.
+2. Read `{{ $baseDir }}/{{ $taskFileName }}` for the scoped task breakdown.
+3. Read specs in `{{ $baseDir }}/{{ $specFolder }}/{{ $specIndexName }}` for full technical context from the spec.
+4. Transform each task (and logical groupings of related tasks) into user stories.
+5. For each story, assign:
+   - **Priority**: High, Medium, or Low
+   - **Points**: Fibonacci scale (1, 2, 3, 5, 8, 13) based on complexity
+   - **Dependencies**: Which stories must be completed first (Depends on) and which stories this one blocks (Blocks)
+6. Order stories by priority (High first), then by dependency order within each priority band.
+7. Write the backlog to `{{ $baseDir }}/{{ $storiesFileName }}` using this format:
+
+```markdown
+## Backlog
+
+### Story 1: <Title>
+**Priority:** High | Medium | Low
+**Points:** 1 | 2 | 3 | 5 | 8 | 13
+**Depends on:** Story 3, Story 5 (or "None")
+**Blocks:** Story 7
+
+<Description paragraph>
+
+**Acceptance Criteria:**
+- [ ] Criterion 1
+- [ ] Criterion 2
+```
+
+8. Present the generated stories to the developer for review.
+9. Adjust priorities, points, dependencies, or story content based on feedback.
+10. Developer confirms the final backlog.
+
+{{ if .IsMultiProject -}}
+#### Multi-Project Stories
+
+This is a multi-project workspace. When generating stories:
+
+1. Tag each story with the affected repository or repositories.
+2. Consider cross-repo dependencies when assigning story ordering.
+3. Populate the `"affected_repos"` field in `{{ $baseDir }}/{{ $sessionStateName }}` with the list of affected child project names.
+{{ end -}}
+
+#### Criteria
+
+- [ ] {{ $baseDir }}/{{ $storiesFileName }} written with all stories in correct format
+- [ ] Each story has priority, points, dependencies, and acceptance criteria
+- [ ] Stories are ordered by priority, then dependency order
+- [ ] Dependencies between stories are consistent (no circular dependencies)
+{{- if .IsMultiProject }}
+- [ ] `affected_repos` populated in {{ $baseDir }}/{{ $sessionStateName }}
+{{- end }}
+- [ ] Developer confirms the final backlog

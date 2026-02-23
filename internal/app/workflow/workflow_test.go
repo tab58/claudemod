@@ -14,6 +14,8 @@ func TestRollbackTargetsReferenceEarlierPhases(t *testing.T) {
 		{"Bugfix", Bugfix},
 		{"Bootstrap", Bootstrap},
 		{"Explain", Explain},
+		{"Backlog", Backlog},
+		{"Task", Task},
 	}
 
 	for _, wf := range workflows {
@@ -50,6 +52,8 @@ func TestWorkflowPhaseNamesAreUnique(t *testing.T) {
 		{"Bugfix", Bugfix},
 		{"Bootstrap", Bootstrap},
 		{"Explain", Explain},
+		{"Backlog", Backlog},
+		{"Task", Task},
 	}
 
 	for _, wf := range workflows {
@@ -142,6 +146,8 @@ func TestGetFirstPhase(t *testing.T) {
 		{"bugfix", Bugfix, "describe-bug", false},
 		{"bootstrap", Bootstrap, "bootstrap", false},
 		{"explain", Explain, "ask-question", false},
+		{"backlog", Backlog, "discuss-feature", false},
+		{"task", Task, "discuss-task", false},
 		{"empty", Workflow{}, "", true},
 	}
 
@@ -184,6 +190,8 @@ func TestRollbackTargetsAreOrdered(t *testing.T) {
 		{"Bugfix", Bugfix},
 		{"Bootstrap", Bootstrap},
 		{"Explain", Explain},
+		{"Backlog", Backlog},
+		{"Task", Task},
 	}
 
 	for _, wf := range workflows {
@@ -225,6 +233,10 @@ func TestIsEndPhase(t *testing.T) {
 		{"bootstrap single phase", Bootstrap, "bootstrap", true},
 		{"explain last phase", Explain, "update-specs", true},
 		{"explain first phase is not end", Explain, "ask-question", false},
+		{"backlog last phase", Backlog, "generate-stories", true},
+		{"backlog first phase is not end", Backlog, "discuss-feature", false},
+		{"task last phase", Task, "synthesize-specs", true},
+		{"task first phase is not end", Task, "discuss-task", false},
 	}
 
 	for _, tt := range tests {

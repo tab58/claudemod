@@ -248,11 +248,14 @@ func (a *App) writeSessionState(state SessionState) error {
 
 // planningPhases lists phases where all child project dirs should be visible.
 var planningPhases = map[string]bool{
-	"discuss-feature": true,
-	"describe-bug":    true,
-	"spec-plan":       true,
-	"scope-plan":      true,
-	"bootstrap":       true,
+	"discuss-feature":  true,
+	"describe-bug":     true,
+	"spec-plan":        true,
+	"scope-plan":       true,
+	"bootstrap":        true,
+	"generate-stories": true,
+	"discuss-task":     true,
+	"task-plan":        true,
 }
 
 // computeAdditionalDirs returns the child project paths that should be passed
