@@ -23,6 +23,11 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.tag || github.ref }}
 
+      - name: Delete existing release if any
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete "${{ github.event.inputs.tag || github.ref_name }}" --yes --cleanup-tag=false 2>/dev/null || true
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
