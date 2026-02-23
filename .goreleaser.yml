@@ -1,0 +1,45 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - main: ./cmd/claudemod
+    binary: claudemod
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/tab58/claudemod/internal/version.version={{.Version}}
+      - -X github.com/tab58/claudemod/internal/version.commit={{.Commit}}
+      - -X github.com/tab58/claudemod/internal/version.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: "claudemod_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^ci:"
+
+release:
+  github:
+    owner: tab58
+    name: claudemod
+  prerelease: auto

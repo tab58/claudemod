@@ -8,12 +8,13 @@ import (
 	"syscall"
 
 	"github.com/tab58/claudemod/internal/app"
+	"github.com/tab58/claudemod/internal/version"
 )
 
 func main() {
 	// parse command line arguments: "run <workflow-name>"
 	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "usage: claudemod <command>\n\ncommands:\n  init                scaffold .claudemod/ and .claude/ without launching Claude\n  run <workflow-name> run a workflow\n")
+		fmt.Fprintf(os.Stderr, "usage: claudemod <command>\n\ncommands:\n  init                scaffold .claudemod/ and .claude/ without launching Claude\n  run <workflow-name> run a workflow\n  version             print version information\n")
 		os.Exit(1)
 	}
 
@@ -31,6 +32,10 @@ func main() {
 		fmt.Println("claudemod: initialized .claudemod/ scaffold")
 		return
 
+	case "version":
+		fmt.Println(version.Get())
+		return
+
 	case "run":
 		if len(os.Args) < 3 {
 			fmt.Fprintf(os.Stderr, "usage: claudemod run <workflow-name>\n")
@@ -38,7 +43,7 @@ func main() {
 		}
 
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %s\nusage: claudemod <command>\n\ncommands:\n  init                scaffold .claudemod/ and .claude/ without launching Claude\n  run <workflow-name> run a workflow\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "unknown command: %s\nusage: claudemod <command>\n\ncommands:\n  init                scaffold .claudemod/ and .claude/ without launching Claude\n  run <workflow-name> run a workflow\n  version             print version information\n", os.Args[1])
 		os.Exit(1)
 	}
 
